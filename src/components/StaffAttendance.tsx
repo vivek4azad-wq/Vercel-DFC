@@ -3,8 +3,12 @@ const MONTHLY_CATEGORY_GROUPS = [
   { key: "ALL", label: "All Categories (Consolidated)", icon: "📊" },
   { key: "PERMANENT", label: "1. Permanent Staff", icon: "🏛️" },
   { key: "OFFICE_STAFF", label: "2. Office Staff (Sweeper, Office boy)", icon: "🏢" },
-  { key: "OUTSOURCE_GANG", label: "3. Outsource Staff (MTS outsource, Mate)", icon: "🛠️" },
-  { key: "EX_SERVICEMAN", label: "4. Ex-Serviceman (Keyman, Patrolman day/night, Gateman, Watchman)", icon: "🎖️" }
+  { key: "OUTSOURCE_GANG", label: "3. Outsource Gang Staff (MTS, Mate)", icon: "🛠️" },
+  { key: "KEYMAN", label: "4. Keymen (Track Maintenance)", icon: "🔑" },
+  { key: "PATROL", label: "5. Patrolmen (Day / Night Security)", icon: "🛡️" },
+  { key: "GATEMAN", label: "6. Gatemen (Level Crossings)", icon: "🚦" },
+  { key: "WATCHMAN", label: "7. Bridge Watchmen (Special Surveillance)", icon: "🌉" },
+  { key: "EX_SERVICEMAN", label: "Ex-Servicemen Roster (All Mapped)", icon: "🎖️" }
 ];
 /**
  * Staff Daily Attendance & Monthly Absentee Statement ERP
@@ -185,6 +189,7 @@ export const StaffAttendance: React.FC = () => {
 
   // Add Holiday Modal
   const [isAddHolidayModalOpen, setIsAddHolidayModalOpen] = useState(false);
+  const [isPrintCategoryModalOpen, setIsPrintCategoryModalOpen] = useState(false);
   const [holidayFormData, setHolidayFormData] = useState({
     date: todayStr,
     title: '',
@@ -495,7 +500,7 @@ export const StaffAttendance: React.FC = () => {
     }
   };
 
-  // Bulk mark all staff for the day
+  // Bulk mark staff for the day (scoped to selected category if filtered)
   const handleBulkMark = async (status: AttendanceStatus, defaultRemarks?: string) => {
     if (!canEditAttendance) {
       alert('🔒 View-Only Mode: You do not have permission to modify attendance.');
@@ -505,8 +510,9 @@ export const StaffAttendance: React.FC = () => {
       alert('🔒 Attendance Lock: 4 din se purani attendance entry me badlav restricted hai. Yeh entry kewal APM / Civil (Shri Vivek Kumar Azad, Super Admin) ke login se hi unlock/edit ho sakti hai.');
       return;
     }
+    const targetList = selectedCategoryFilter === 'ALL' ? allStaffList : filteredDailyStaff;
     try {
-      for (const staff of allStaffList) {
+      for (const staff of targetList) {
         const recordId = `${selectedDate}_${staff.id}`;
         const payload: DailyAttendanceRecord = {
           id: recordId,
@@ -529,7 +535,8 @@ export const StaffAttendance: React.FC = () => {
           await db.addDocument('staff_attendance', payload, currentUser);
         }
       }
-      setSaveSuccessMsg(`All ${allStaffList.length} staff marked as ${status} for ${selectedDate}`);
+      const catLabel = selectedCategoryFilter === 'ALL' ? 'All' : selectedCategoryFilter;
+      setSaveSuccessMsg(`${targetList.length} ${catLabel} staff marked as ${status} for ${selectedDate}`);
       setTimeout(() => setSaveSuccessMsg(null), 3000);
     } catch (err: any) {
       alert(`Bulk update failed: ${err.message}`);
@@ -772,28 +779,43 @@ export const StaffAttendance: React.FC = () => {
       monthDates.forEach(d => {
         const key = `${d.dateStr}_${staff.id}`;
         const rec = attendanceRecords.find(r => r.id === key);
-        let st: AttendanceStatus;
+        const isFutureDate = d.dateStr > todayStr;
+        let st: AttendanceStatus | '' = '';
         if (rec) {
           st = rec.status;
+        } else if (isFutureDate) {
+          // Future dates: do not mark 'P' in advance!
+          if (d.isNH) {
+            st = 'NH';
+          } else if (d.isSunday) {
+            st = 'REST';
+          } else {
+            st = ''; // Blank unrecorded day
+          }
         } else if (d.isNH) {
           st = 'NH';
         } else if (d.isSunday) {
           st = 'REST';
         } else {
-          st = 'P'; // Default present if not explicitly marked absent
+          st = 'P'; // Default present for past / today's working days
         }
 
-        dailyMap[d.dayNum] = st;
+        dailyMap[d.dayNum] = st as AttendanceStatus;
         if (st === 'P') presentCount++;
         else if (st === 'A') {
           absentCount++;
           absentDates.push(d.dayNum);
-        } else if (st === 'REST' || st === 'WO') restCount++;
-        else if (st === 'OFF') offCount++;
-        else if (st === 'NH') nhCount++;
-        else if (st === 'CR') crCount++;
-        else if (st === 'OD') odCount++;
-        else if (st === 'LAP') { lapCount++; leaveBreakdownList.push(`LAP:${d.dayNum}`); }
+        } else if (st === 'REST' || st === 'WO') {
+          if (!isFutureDate || rec) restCount++;
+        } else if (st === 'OFF') {
+          if (!isFutureDate || rec) offCount++;
+        } else if (st === 'NH') {
+          if (!isFutureDate || rec) nhCount++;
+        } else if (st === 'CR') {
+          if (!isFutureDate || rec) crCount++;
+        } else if (st === 'OD') {
+          if (!isFutureDate || rec) odCount++;
+        } else if (st === 'LAP') { lapCount++; leaveBreakdownList.push(`LAP:${d.dayNum}`); }
         else if (st === 'LHAP') { lhapCount++; leaveBreakdownList.push(`LHAP:${d.dayNum}`); }
         else if (st === 'CL') { clCount++; leaveBreakdownList.push(`CL:${d.dayNum}`); }
         else if (st === 'RH') { rhCount++; leaveBreakdownList.push(`RH:${d.dayNum}`); }
@@ -996,7 +1018,7 @@ export const StaffAttendance: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  const getStatusBadgeStyle = (st: AttendanceStatus) => {
+  const getStatusBadgeStyle = (st?: string | AttendanceStatus | null) => {
     switch (st) {
       case 'P':
         return 'bg-emerald-100 text-emerald-800 font-bold border border-emerald-200';
@@ -1027,6 +1049,9 @@ export const StaffAttendance: React.FC = () => {
         return 'bg-indigo-100 text-indigo-900 font-bold border border-indigo-300';
       case 'OD':
         return 'bg-violet-100 text-violet-900 font-bold border border-violet-300';
+      case '':
+      case undefined:
+        return 'bg-slate-50/70 dark:bg-slate-800/40 text-slate-300 dark:text-slate-600 font-mono';
       default:
         return 'bg-slate-100 text-slate-700';
     }
@@ -1264,6 +1289,66 @@ export const StaffAttendance: React.FC = () => {
                   🎉 Mark All Holiday (NH)
                 </button>
               </div>
+            </div>
+          </div>
+
+          {/* Daily Category Filter Tabs (Mark Attendance Category by Category) */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+                <Filter className="w-4 h-4 text-[#123b72] dark:text-blue-400" />
+                <span>Mark Attendance by Category (श्रेणी अनुसार हाजिरी):</span>
+              </span>
+              <span className="text-[11px] text-slate-500 font-mono">
+                Showing: <strong>{filteredDailyStaff.length}</strong> / {allStaffList.length} staff
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              {[
+                { key: "ALL", label: "All Categories", icon: "📊" },
+                { key: "PERMANENT", label: "1. Permanent Staff", icon: "🏛️" },
+                { key: "OFFICE_STAFF", label: "2. Office Staff", icon: "🏢" },
+                { key: "OUTSOURCE", label: "3. Outsource Gang", icon: "🛠️" },
+                { key: "KEYMAN", label: "4. Keymen", icon: "🔑" },
+                { key: "PATROL", label: "5. Patrolmen", icon: "🛡️" },
+                { key: "GATEMAN", label: "6. Gatemen", icon: "🚦" },
+                { key: "WATCHMAN", label: "7. Watchmen", icon: "🌉" }
+              ].map(cat => {
+                const count = cat.key === "ALL"
+                  ? allStaffList.length
+                  : allStaffList.filter(s => {
+                      if (cat.key === 'PERMANENT') return s.category === 'PERMANENT' || s.isPermanent;
+                      if (cat.key === 'OFFICE_STAFF') return s.category === 'OFFICE_STAFF';
+                      if (cat.key === 'OUTSOURCE') return s.category === 'OUTSOURCE' || s.category === 'OUTSOURCE_GANG';
+                      if (cat.key === 'KEYMAN') return s.category === 'KEYMAN' || (s.designation || '').toLowerCase().includes('keyman');
+                      if (cat.key === 'PATROL') return s.category === 'PATROL' || (s.designation || '').toLowerCase().includes('patrol');
+                      if (cat.key === 'GATEMAN') return s.category === 'GATEMAN' || (s.designation || '').toLowerCase().includes('gateman');
+                      if (cat.key === 'WATCHMAN') return s.category === 'WATCHMAN' || (s.designation || '').toLowerCase().includes('watchman');
+                      return s.category === cat.key;
+                    }).length;
+
+                return (
+                  <button
+                    key={cat.key}
+                    type="button"
+                    onClick={() => setSelectedCategoryFilter(cat.key)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                      selectedCategoryFilter === cat.key
+                        ? "bg-[#123b72] text-white shadow-sm ring-2 ring-blue-400"
+                        : "bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                    }`}
+                  >
+                    <span>{cat.icon}</span>
+                    <span>{cat.label}</span>
+                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                      selectedCategoryFilter === cat.key ? "bg-white/20 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200"
+                    }`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -1505,7 +1590,7 @@ export const StaffAttendance: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => window.print()}
+                  onClick={() => setIsPrintCategoryModalOpen(true)}
                   className="px-3.5 py-1.5 bg-[#123b72] hover:bg-[#1a4f9c] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95"
                 >
                   <Printer className="w-3.5 h-3.5" />
@@ -1595,14 +1680,16 @@ export const StaffAttendance: React.FC = () => {
 
           {/* Official Printable Statement */}
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-            <div className="text-center border-b border-slate-200 pb-4 mb-4">
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <span className="px-2.5 py-0.5 bg-[#123b72] text-white text-[10px] font-bold rounded">DFCCIL IMSD SMUN</span>
-                <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded">CIVIL / P-WAY</span>
+            <div className="text-center border-b-2 border-slate-300 pb-4 mb-5">
+              <div className="flex items-center justify-center gap-2 mb-1.5">
+                <span className="px-3 py-1 bg-[#123b72] text-white text-xs font-black rounded uppercase tracking-wider">DFCCIL IMSD SMUN</span>
+                <span className="px-3 py-1 bg-emerald-700 text-white text-xs font-black rounded uppercase tracking-wider">CIVIL / P-WAY</span>
               </div>
-              <h3 className="text-lg font-black text-slate-900 uppercase tracking-wide">Category-Wise Monthly Absentee Statement</h3>
-              <p className="text-xs text-slate-600 font-mono">
-                Month: {MONTH_NAMES[selectedMonth]} {selectedYear} · Section: Km 1167.210 – 1249.720 · Category: {selectedMonthlyCategory === "ALL" ? "All Categories (Consolidated)" : MONTHLY_CATEGORY_GROUPS.find(g => g.key === selectedMonthlyCategory)?.label}
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-950 uppercase tracking-wide my-2 leading-tight">
+                Attendance of {selectedMonthlyCategory === "ALL" ? "All Categories" : (MONTHLY_CATEGORY_GROUPS.find(g => g.key === selectedMonthlyCategory)?.label.replace(/^\d+\.\s*/, '') || selectedMonthlyCategory)} of {MONTH_NAMES[selectedMonth]} {selectedYear}
+              </h2>
+              <p className="text-xs text-slate-700 font-mono font-bold">
+                Section: Km 1167.210 – 1249.720 • IMSD SMUN Unit
               </p>
             </div>
 
@@ -1674,15 +1761,15 @@ export const StaffAttendance: React.FC = () => {
                           </td>
                           <td className="p-1.5 border border-slate-300 font-mono text-slate-600">{row.staff.awpoId}</td>
                           {monthDates.map(d => {
-                            const val = row.dailyMap[d.dayNum] || "P";
-                            const badgeStyle = getStatusBadgeStyle(val);
+                            const val = row.dailyMap[d.dayNum] || "";
+                            const badgeStyle = getStatusBadgeStyle(val as any);
                             return (
                               <td
                                 key={d.dayNum}
                                 className={`p-0.5 border border-slate-300 text-center font-mono text-[9px] ${badgeStyle}`}
-                                title={`Day ${d.dayNum}: ${val}`}
+                                title={`Day ${d.dayNum}: ${val || 'Unrecorded'}`}
                               >
-                                {val}
+                                {val || '—'}
                               </td>
                             );
                           })}
@@ -1769,6 +1856,41 @@ export const StaffAttendance: React.FC = () => {
                   </tr>
                 </tbody>
               </table>
+            </div>
+
+            {/* Official 2-Signatures Stamp Block */}
+            <div className="mt-8 pt-6 border-t-2 border-slate-300 grid grid-cols-2 gap-8 text-center print:mt-12">
+              <div className="flex flex-col items-center justify-end p-4 rounded-xl bg-slate-50 border border-slate-300">
+                <div className="h-16 flex items-end justify-center mb-1">
+                  <span className="font-serif italic text-blue-900 text-lg font-bold">Arjun Kumar</span>
+                </div>
+                <div className="w-48 h-0.5 bg-slate-500 my-1"></div>
+                <div className="font-black text-xs text-slate-900 uppercase tracking-wider">
+                  Arjun Kumar
+                </div>
+                <div className="text-[11px] font-bold text-slate-700">
+                  Executive / Civil / SMUN
+                </div>
+                <div className="text-[10px] text-slate-500 font-mono">
+                  DFCCIL IMSD SMUN
+                </div>
+              </div>
+
+              <div className="flex flex-col items-center justify-end p-4 rounded-xl bg-slate-50 border border-slate-300">
+                <div className="h-16 flex items-end justify-center mb-1">
+                  <span className="font-serif italic text-blue-900 text-lg font-bold">Vivek Kumar Azad</span>
+                </div>
+                <div className="w-48 h-0.5 bg-slate-500 my-1"></div>
+                <div className="font-black text-xs text-slate-900 uppercase tracking-wider">
+                  Vivek Azad
+                </div>
+                <div className="text-[11px] font-bold text-slate-700">
+                  APM / Civil / SMUN
+                </div>
+                <div className="text-[10px] text-slate-500 font-mono">
+                  DFCCIL IMSD SMUN
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1920,6 +2042,95 @@ export const StaffAttendance: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Category Selection Before Printing Modal */}
+      {isPrintCategoryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-blue-50 dark:bg-blue-900/30 text-[#123b72] dark:text-blue-300 rounded-xl">
+                  <Printer className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 dark:text-white">Select Category to Print</h3>
+                  <p className="text-xs text-slate-500">Pahle category select karein, fir official statement print hoga.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPrintCategoryModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-white text-lg font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {MONTHLY_CATEGORY_GROUPS.map(cat => {
+                const count = cat.key === "ALL"
+                  ? allStaffList.length
+                  : allStaffList.filter(s => {
+                      if (cat.key === 'PERMANENT') return s.category === 'PERMANENT' || s.isPermanent;
+                      if (cat.key === 'OFFICE_STAFF') return s.category === 'OFFICE_STAFF';
+                      if (cat.key === 'OUTSOURCE_GANG') return s.category === 'OUTSOURCE' || s.category === 'OUTSOURCE_GANG';
+                      if (cat.key === 'KEYMAN') return s.category === 'KEYMAN' || (s.designation || '').toLowerCase().includes('keyman');
+                      if (cat.key === 'PATROL') return s.category === 'PATROL' || (s.designation || '').toLowerCase().includes('patrol');
+                      if (cat.key === 'GATEMAN') return s.category === 'GATEMAN' || (s.designation || '').toLowerCase().includes('gateman');
+                      if (cat.key === 'WATCHMAN') return s.category === 'WATCHMAN' || (s.designation || '').toLowerCase().includes('watchman');
+                      return s.category === cat.key;
+                    }).length;
+
+                return (
+                  <button
+                    key={cat.key}
+                    type="button"
+                    onClick={() => {
+                      setSelectedMonthlyCategory(cat.key);
+                      setIsPrintCategoryModalOpen(false);
+                      setTimeout(() => {
+                        window.print();
+                      }, 250);
+                    }}
+                    className={`w-full p-3 rounded-xl border text-left flex items-center justify-between transition ${
+                      selectedMonthlyCategory === cat.key
+                        ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-700 ring-2 ring-blue-500'
+                        : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-lg">{cat.icon}</span>
+                      <div>
+                        <span className="text-xs font-black text-slate-900 dark:text-white block">{cat.label}</span>
+                        <span className="text-[10px] text-slate-500 font-mono">Statement for {MONTH_NAMES[selectedMonth]} {selectedYear}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200">
+                        {count} Staff
+                      </span>
+                      <span className="px-2.5 py-1 bg-[#123b72] hover:bg-[#1a4f9c] text-white rounded-lg text-xs font-bold shadow-sm">
+                        Print 🖨️
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setIsPrintCategoryModalOpen(false)}
+                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold hover:bg-slate-200"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

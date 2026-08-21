@@ -32,6 +32,7 @@ import {
 import { BridgeDetailModal } from './BridgeDetailModal.tsx';
 import { StaffIdModal, type UnifiedStaffModalData } from './StaffIdModal.tsx';
 import { GRADIENT_RECORDS } from '../data/gradientData.ts';
+import { getPatrolShiftBounds, DEFAULT_BEAT_ROUTES } from '../data/beatRoutes.ts';
 import type {
   BridgeRecord,
   PointCrossingRecord,
@@ -193,13 +194,93 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
       return kmVal >= minKm - 0.05 && kmVal <= maxKm + 0.05;
     });
 
-    // 2. Patrol Shifts (covering this KM)
-    const dayPatrol = patList.filter(
-      p => p.shiftType === 'DAY' && kmVal >= p.fromKm - 0.1 && kmVal <= p.toKm + 0.1
-    );
-    const nightPatrol = patList.filter(
-      p => p.shiftType === 'NIGHT' && kmVal >= p.fromKm - 0.1 && kmVal <= p.toKm + 0.1
-    );
+    // 2. Patrol Shifts (covering this KM across 12 Day & 12 Night Beats)
+    const normalizedPatrolList = patList.map(p => {
+      const bounds = getPatrolShiftBounds(p);
+      return {
+        ...p,
+        fromKm: bounds.fromKm,
+        toKm: bounds.toKm,
+        route: p.route || bounds.section,
+        shiftHours: p.shiftHours || bounds.shiftHours
+      };
+    });
+
+    // Match Day Patrol
+    let dayPatrol = normalizedPatrolList.filter(p => {
+      const isDay = p.shiftType === 'DAY' || (p.beatCode || '').startsWith('SPD') || (p.id || '').includes('DAY');
+      if (!isDay) return false;
+      const minKm = Math.min(p.fromKm, p.toKm);
+      const maxKm = Math.max(p.fromKm, p.toKm);
+      return kmVal >= minKm - 0.1 && kmVal <= maxKm + 0.1;
+    });
+
+    // Fallback: If DB list did not have this beat, synthesize from DEFAULT_BEAT_ROUTES
+    if (dayPatrol.length === 0) {
+      Object.entries(DEFAULT_BEAT_ROUTES).forEach(([code, route]) => {
+        if (code.startsWith('SPD') && kmVal >= route.fromKm - 0.1 && kmVal <= route.toKm + 0.1) {
+          dayPatrol.push({
+            id: `PATROL-DAY-${code}`,
+            beatCode: code,
+            sectionCode: route.section,
+            fromKm: route.fromKm,
+            toKm: route.toKm,
+            shiftCode: 'SHIFT_A_DAY',
+            shiftHours: route.shiftHoursDay,
+            shiftType: 'DAY',
+            patrolType: 'SECURITY',
+            patrolmanName: 'Assigned Day Patrol Beat',
+            patrolmanStaffId: '',
+            patrolmanPhone: '-',
+            patrolPartnerId: null,
+            patrolPartnerName: null,
+            isFilled: true,
+            status: 'ACTIVE',
+            route: route.section,
+            restDay: 'Sunday',
+            equipmentChecked: true
+          });
+        }
+      });
+    }
+
+    // Match Night Patrol
+    let nightPatrol = normalizedPatrolList.filter(p => {
+      const isNight = p.shiftType === 'NIGHT' || (p.beatCode || '').startsWith('SPN') || (p.id || '').includes('NIGHT');
+      if (!isNight) return false;
+      const minKm = Math.min(p.fromKm, p.toKm);
+      const maxKm = Math.max(p.fromKm, p.toKm);
+      return kmVal >= minKm - 0.1 && kmVal <= maxKm + 0.1;
+    });
+
+    // Fallback: If DB list did not have this night beat, synthesize from DEFAULT_BEAT_ROUTES
+    if (nightPatrol.length === 0) {
+      Object.entries(DEFAULT_BEAT_ROUTES).forEach(([code, route]) => {
+        if (code.startsWith('SPN') && kmVal >= route.fromKm - 0.1 && kmVal <= route.toKm + 0.1) {
+          nightPatrol.push({
+            id: `PATROL-NIGHT-${code}`,
+            beatCode: code,
+            sectionCode: route.section,
+            fromKm: route.fromKm,
+            toKm: route.toKm,
+            shiftCode: 'SHIFT_C_NIGHT',
+            shiftHours: route.shiftHoursNight,
+            shiftType: 'NIGHT',
+            patrolType: 'SECURITY',
+            patrolmanName: 'Assigned Night Patrol Beat (Pair)',
+            patrolmanStaffId: '',
+            patrolmanPhone: '-',
+            patrolPartnerId: null,
+            patrolPartnerName: null,
+            isFilled: true,
+            status: 'ACTIVE',
+            route: route.section,
+            restDay: 'Sunday',
+            equipmentChecked: true
+          });
+        }
+      });
+    }
 
     // 3. Level Crossings within +-2.5 Km
     const nearLC = lcList.filter(lc => {

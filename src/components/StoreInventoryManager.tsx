@@ -445,8 +445,12 @@ export const StoreInventoryManager: React.FC = () => {
     loadStoreData();
   };
 
-  // Handle Delete Item
+  // Handle Delete Item (Super Admin APM Vivek Kumar Azad Only)
   const handleDeleteItem = async (item: StoreItemRecord) => {
+    if (!isSuperAdmin) {
+      alert('🔒 Permission Denied: Material Item Delete karne ka adhikar kewal Super Admin (Shri Vivek Kumar Azad, APM/Civil) ke paas hai.');
+      return;
+    }
     if (!window.confirm(`⚠️ DELETE MATERIAL ITEM:\n\nAre you sure you want to permanently delete "${item.name}" (${item.itemCode}) from Store Inventory?`)) {
       return;
     }
@@ -1578,12 +1582,12 @@ export const StoreInventoryManager: React.FC = () => {
                   <span>- Issue Voucher</span>
                 </button>
 
-                {isStoreKeeper && (
+                {isSuperAdmin && (
                   <button
                     type="button"
                     onClick={() => handleDeleteItem(selectedItemForTally)}
                     className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/60 rounded-xl border border-red-200 dark:border-red-800 transition"
-                    title="Delete Material Item Record"
+                    title="Delete Material Item Record (Super Admin Only)"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
