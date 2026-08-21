@@ -35,6 +35,8 @@ interface AuthContextType {
 
 const AUTH_STORAGE_KEY = 'raildiary_auth_session_v1';
 const AUTH_TOKEN_KEY = 'raildiary_auth_token_v1';
+const AUTH_SESSION_TIME_KEY = 'raildiary_auth_session_time_v1';
+const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 Hours Session Expiry
 
 function safeStorageSet(key: string, value: string): void {
   try {
@@ -81,7 +83,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [allUsers, setAllUsers] = useState<UserAccount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Synchronize Firebase Auth state listener and local users
+  // Synchronize Auth state listener, 24-hr session expiry check, and local users
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
 
@@ -89,6 +91,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
         const users = await db.getCollection<UserAccount>('users');
         setAllUsers(users);
+
+        // Check 24-hour session expiration
+        const sessionTimeStr = localStorage.getItem(AUTH_SESSION_TIME_KEY);
+        const sessionTime = sessionTimeStr ? parseInt(sessionTimeStr, 10) : 0;
+        const isSessionExpired = !sessionTime || (Date.now() - sessionTime) > SESSION_MAX_AGE_MS;
+
+        if (isSessionExpired) {
+          safeStorageRemove(AUTH_STORAGE_KEY);
+          safeStorageRemove(AUTH_SESSION_TIME_KEY);
+          safeStorageRemove(AUTH_TOKEN_KEY);
+          setCurrentUser(null);
+          setFirebaseUser(null);
+          setAuthToken(null);
+          setIsLoading(false);
+          return;
+        }
 
         const auth = getFirebaseAuth();
 
@@ -107,6 +125,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               if (matched) {
                 setCurrentUser(matched);
                 safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(matched));
+                safeStorageSet(AUTH_SESSION_TIME_KEY, String(Date.now()));
               } else {
                 // Construct user session from Firebase user metadata
                 const fallbackUser: UserAccount = {
@@ -129,24 +148,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 };
                 setCurrentUser(fallbackUser);
                 safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(fallbackUser));
+                safeStorageSet(AUTH_SESSION_TIME_KEY, String(Date.now()));
               }
             } catch (tokenErr) {
               console.warn('Could not retrieve Firebase ID token:', tokenErr);
             }
           } else {
-            // Check stored session for offline/demo persistence
+            // Check stored session
             const stored = localStorage.getItem(AUTH_STORAGE_KEY);
             if (stored) {
               try {
                 const parsed = JSON.parse(stored);
                 const matched = users.find(u => u.id === parsed.id || u.userId === parsed.userId);
-                if (matched && matched.isActive) {
+                if (matched && matched.isActive && !matched.isLocked) {
                   setCurrentUser(matched);
-                } else if (parsed) {
+                } else if (parsed && !parsed.isLocked) {
                   setCurrentUser(parsed);
                 }
               } catch {
                 safeStorageRemove(AUTH_STORAGE_KEY);
+                safeStorageRemove(AUTH_SESSION_TIME_KEY);
                 setCurrentUser(null);
               }
             } else {
@@ -271,6 +292,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         setCurrentUser(resetUser);
         safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(resetUser));
+        safeStorageSet(AUTH_SESSION_TIME_KEY, String(Date.now()));
         return { success: true };
       }
 
@@ -308,6 +330,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         setCurrentUser(fallbackUser);
         safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(fallbackUser));
+        safeStorageSet(AUTH_SESSION_TIME_KEY, String(Date.now()));
         return { success: true };
       } catch (fbErr: any) {
         return { success: false, message: 'Invalid Login ID or PIN. Please enter your valid 6-digit credentials.' };
@@ -331,6 +354,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setFirebaseUser(null);
       setAuthToken(null);
       safeStorageRemove(AUTH_STORAGE_KEY);
+      safeStorageRemove(AUTH_SESSION_TIME_KEY);
       safeStorageRemove(AUTH_TOKEN_KEY);
     }
   };
@@ -339,14 +363,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const users = await db.getCollection<UserAccount>('users');
     let target: UserAccount | undefined;
 
-    if (targetAppRole === 'APM') {
+    if (targetAppRole === 'Admin' || targetAppRole === 'APM') {
       target = users.find(u => u.role === 'SUPER_ADMIN') || users.find(u => u.id === 'EMP-101518');
-    } else if (targetAppRole === 'Executive') {
-      target = users.find(u => u.role === 'OFFICER' && (u.name.toLowerCase().includes('arjun') || u.id === 'EMP-100619')) || users.find(u => u.role === 'OFFICER');
+    } else if (targetAppRole === 'Sectional' || targetAppRole === 'Executive') {
+      target = users.find(u => u.role === 'OFFICER' && !u.designation?.toLowerCase().includes('clerk')) || users.find(u => u.role === 'OFFICER');
+    } else if (targetAppRole === 'Clerk') {
+      target = users.find(u => u.designation?.toLowerCase().includes('clerk') || u.name?.toLowerCase().includes('clerk')) || users.find(u => u.role === 'OFFICER');
     } else if (targetAppRole === 'MTS') {
       target = users.find(u => u.role === 'STAFF' && (u.name.toLowerCase().includes('pinki') || u.id === 'EMP-100780')) || users.find(u => u.role === 'STAFF');
     } else if (targetAppRole === 'StoreKeeper') {
       target = users.find(u => u.role === 'STORE_KEEPER') || users.find(u => u.id === 'EMP-STORE-001');
+    } else if (targetAppRole === 'Guest') {
+      target = {
+        id: 'GUEST-001',
+        userId: 'guest@dfcc.co.in',
+        email: 'guest@dfcc.co.in',
+        pin: '123456',
+        name: 'Guest Viewer',
+        role: 'STAFF',
+        appRole: 'Guest',
+        designation: 'Guest Viewer',
+        department: 'DFCCIL Safety',
+        unit: 'IMSD SMUN',
+        phone: '0000000000',
+        isActive: true,
+        isLocked: false,
+        qrCodeId: 'RD-GUEST',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
     }
 
     if (target) {
@@ -467,13 +512,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return RBACService.canPerform(currentUser?.role, action, resource);
   };
 
-  const currentAppRole: AppUserRole = currentUser?.role === 'SUPER_ADMIN'
-    ? 'APM'
-    : currentUser?.role === 'OFFICER'
-    ? 'Executive'
+  const currentAppRole: AppUserRole = currentUser?.appRole
+    ? (currentUser.appRole as AppUserRole)
+    : currentUser?.role === 'SUPER_ADMIN'
+    ? 'Admin'
     : currentUser?.role === 'STORE_KEEPER'
     ? 'StoreKeeper'
-    : 'MTS';
+    : currentUser?.role === 'OFFICER'
+    ? (currentUser?.designation?.toLowerCase().includes('clerk') ? 'Clerk' : 'Sectional')
+    : currentUser?.designation?.toLowerCase().includes('clerk')
+    ? 'Clerk'
+    : currentUser?.role === 'STAFF'
+    ? 'MTS'
+    : 'Guest';
 
   return (
     <AuthContext.Provider

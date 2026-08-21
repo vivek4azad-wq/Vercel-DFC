@@ -59,14 +59,46 @@ const decodeTallyData = async (): Promise<{ items: any[]; transactions: any[] }>
 };
 
 const DEFAULT_STORE_CATEGORIES = [
-  { id: 'T&P', label: 'T&P (Tools & Plant)' },
-  { id: 'C&P', label: 'C&P (Consumables & Petroleum)' },
-  { id: 'P.way material', label: 'P.way material (Fittings, Rails, Turnouts)' },
-  { id: 'Cash Imprest', label: 'Cash Imprest Material' },
-  { id: 'Uniform', label: 'Uniform & Safety Gear' },
-  { id: 'Furniture', label: 'Furniture & Office Equipment' },
-  { id: 'P.way machines', label: 'P.way machines & Heavy Equipment' }
+  { id: 'T&P', label: 'T&P' },
+  { id: 'C&P', label: 'C&P' },
+  { id: 'p.way Material', label: 'p.way Material' },
+  { id: 'Imprest', label: 'Imprest' },
+  { id: 'P.way machines', label: 'P.way machines' },
+  { id: 'uniform', label: 'uniform' },
+  { id: 'furniture', label: 'furniture' }
 ];
+
+export const parseDateToTimestamp = (dateStr?: string): number => {
+  if (!dateStr) return 0;
+  const clean = dateStr.trim();
+  const ddmmyyyyMatch = clean.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
+  if (ddmmyyyyMatch) {
+    const day = parseInt(ddmmyyyyMatch[1], 10);
+    const month = parseInt(ddmmyyyyMatch[2], 10) - 1;
+    const year = parseInt(ddmmyyyyMatch[3], 10);
+    return new Date(year, month, day).getTime();
+  }
+  const t = Date.parse(clean);
+  return isNaN(t) ? 0 : t;
+};
+
+export const formatToDDMMYYYY = (dateStr?: string): string => {
+  if (!dateStr) return '—';
+  const clean = dateStr.trim();
+  const ddmmyyyyMatch = clean.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
+  if (ddmmyyyyMatch) {
+    const day = ddmmyyyyMatch[1].padStart(2, '0');
+    const month = ddmmyyyyMatch[2].padStart(2, '0');
+    const year = ddmmyyyyMatch[3];
+    return `${day}-${month}-${year}`;
+  }
+  const d = new Date(clean);
+  if (isNaN(d.getTime())) return clean;
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}-${month}-${year}`;
+};
 
 export const StoreInventoryManager: React.FC = () => {
   const { currentUser, role } = useAuth();
@@ -92,6 +124,14 @@ export const StoreInventoryManager: React.FC = () => {
   const [isSapSuggestionOpen, setIsSapSuggestionOpen] = useState(false);
   const [txnSapSuggestions, setTxnSapSuggestions] = useState<SapMaterial[]>([]);
   const [isTxnSapSuggestionOpen, setIsTxnSapSuggestionOpen] = useState(false);
+
+  // Change Category Modal State
+  const [changeCategoryTargetItem, setChangeCategoryTargetItem] = useState<StoreItemRecord | null>(null);
+  const [selectedNewCategory, setSelectedNewCategory] = useState<string>('T&P');
+
+  // Edit Buffer Modal State
+  const [editBufferTargetItem, setEditBufferTargetItem] = useState<StoreItemRecord | null>(null);
+  const [newBufferValue, setNewBufferValue] = useState<number>(5);
 
   const [selectedItemForTally, setSelectedItemForTally] = useState<StoreItemRecord | null>(null);
   const [selectedItemForQR, setSelectedItemForQR] = useState<StoreItemRecord | null>(null);
@@ -478,24 +518,27 @@ export const StoreInventoryManager: React.FC = () => {
       targetItem = createdItem;
     }
 
-    if (!targetItem || txnFormData.quantity <= 0) {
-      alert('Please select or specify a valid material item and quantity');
+    if (!targetItem || Number(txnFormData.quantity) <= 0) {
+      alert('Please select or specify a valid material item and quantity (must be greater than 0)');
       return;
     }
 
-    const qty = Number(txnFormData.quantity);
-    if (txnType === 'OUTWARD' && targetItem.currentStock < qty) {
-      alert(`⚠️ Insufficient Stock! Current Available: ${targetItem.currentStock} ${targetItem.unit}`);
+    const qty = Math.max(0, Number(txnFormData.quantity));
+    if (txnType === 'OUTWARD' && (targetItem.currentStock < qty || qty <= 0)) {
+      alert(`⚠️ Insufficient Stock! Current Available: ${targetItem.currentStock} ${targetItem.unit}. Negative (-ve) stock is strictly not allowed.`);
       return;
     }
 
-    const newStock = txnType === 'INWARD'
-      ? targetItem.currentStock + qty
-      : (txnType === 'OUTWARD' ? targetItem.currentStock - qty : targetItem.currentStock);
+    const newStock = Math.max(
+      0,
+      txnType === 'INWARD'
+        ? targetItem.currentStock + qty
+        : (txnType === 'OUTWARD' ? targetItem.currentStock - qty : targetItem.currentStock)
+    );
 
     const newTxn: StoreTransactionRecord = {
       id: `TXN-${Date.now().toString().slice(-6)}`,
-      date: txnFormData.voucherDate || new Date().toISOString().split('T')[0],
+      date: formatToDDMMYYYY(txnFormData.voucherDate) || formatToDDMMYYYY(new Date().toISOString().split('T')[0]),
       type: txnType,
       itemId: targetItem.id,
       itemName: targetItem.name,
@@ -531,6 +574,44 @@ export const StoreInventoryManager: React.FC = () => {
     setIsOnTheFlyMaterialMode(false);
     setOnTheFlyMaterial({ name: '', itemCode: '', unit: 'Nos', category: 'T&P', priceListCode: '49', tallyCodeNo: '1', accountsFileNo: '3195' });
     loadStoreData();
+  };
+
+  // Handle Change Item Category
+  const handleSaveChangeCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!changeCategoryTargetItem) return;
+    try {
+      const catObj = allCategories.find(c => c.id === selectedNewCategory);
+      const updated: StoreItemRecord = {
+        ...changeCategoryTargetItem,
+        category: selectedNewCategory,
+        categoryLabel: catObj ? catObj.label : selectedNewCategory,
+        updatedAt: new Date().toISOString()
+      };
+      await db.updateDocument('store_items', changeCategoryTargetItem.id, updated);
+      setItems(prev => prev.map(i => (i.id === changeCategoryTargetItem.id ? updated : i)));
+      setChangeCategoryTargetItem(null);
+    } catch (err: any) {
+      alert(`Failed to change category: ${err.message}`);
+    }
+  };
+
+  // Handle Edit Minimum Buffer
+  const handleSaveEditBuffer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editBufferTargetItem) return;
+    try {
+      const updated: StoreItemRecord = {
+        ...editBufferTargetItem,
+        minBufferThreshold: Math.max(0, Number(newBufferValue)),
+        updatedAt: new Date().toISOString()
+      };
+      await db.updateDocument('store_items', editBufferTargetItem.id, updated);
+      setItems(prev => prev.map(i => (i.id === editBufferTargetItem.id ? updated : i)));
+      setEditBufferTargetItem(null);
+    } catch (err: any) {
+      alert(`Failed to update minimum buffer: ${err.message}`);
+    }
   };
 
   // CSV Direct Parser & Uploader
@@ -661,26 +742,30 @@ export const StoreInventoryManager: React.FC = () => {
   }, [items, selectedCategoryFilter, searchQuery]);
 
   const filteredTxns = useMemo(() => {
-    return transactions.filter(t => {
-      if (activeSubTab === 'inward' && t.type !== 'INWARD') return false;
-      if (activeSubTab === 'outward' && t.type !== 'OUTWARD') return false;
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        return (
-          t.itemName.toLowerCase().includes(q) ||
-          t.referenceNo.toLowerCase().includes(q) ||
-          t.issuedToOrReceivedFrom.toLowerCase().includes(q) ||
-          t.purposeOrSection.toLowerCase().includes(q)
-        );
-      }
-      return true;
-    });
+    return transactions
+      .filter(t => {
+        if (activeSubTab === 'inward' && t.type !== 'INWARD') return false;
+        if (activeSubTab === 'outward' && t.type !== 'OUTWARD') return false;
+        if (searchQuery) {
+          const q = searchQuery.toLowerCase();
+          return (
+            t.itemName.toLowerCase().includes(q) ||
+            t.referenceNo.toLowerCase().includes(q) ||
+            t.issuedToOrReceivedFrom.toLowerCase().includes(q) ||
+            t.purposeOrSection.toLowerCase().includes(q)
+          );
+        }
+        return true;
+      })
+      .sort((a, b) => parseDateToTimestamp(a.date) - parseDateToTimestamp(b.date));
   }, [transactions, activeSubTab, searchQuery]);
 
-  // Selected item transactions for Departmental Ledger & Tally Book
+  // Selected item transactions for Departmental Ledger & Tally Book (Sorted oldest to newest)
   const tallyTransactions = useMemo(() => {
     if (!selectedItemForTally) return [];
-    return transactions.filter(t => t.itemId === selectedItemForTally.id || t.itemName.toLowerCase() === selectedItemForTally.name.toLowerCase());
+    return transactions
+      .filter(t => t.itemId === selectedItemForTally.id || t.itemName.toLowerCase() === selectedItemForTally.name.toLowerCase())
+      .sort((a, b) => parseDateToTimestamp(a.date) - parseDateToTimestamp(b.date));
   }, [transactions, selectedItemForTally]);
 
   const exportStoreCsv = () => {
@@ -976,41 +1061,31 @@ export const StoreInventoryManager: React.FC = () => {
         </div>
       </div>
 
-      {/* Category Pills Bar with Delete Category button */}
+      {/* Category Pills Bar (Short Clean Names, No Delete Option) */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-1 shrink-0">Categories:</span>
         <button
           onClick={() => setSelectedCategoryFilter('ALL')}
           className={`px-3 py-1 rounded-lg text-xs font-bold transition shrink-0 ${
             selectedCategoryFilter === 'ALL'
-              ? 'bg-blue-600 text-white'
+              ? 'bg-blue-600 text-white shadow-sm'
               : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
           }`}
         >
           All
         </button>
         {allCategories.map(cat => (
-          <div key={cat.id} className="flex items-center shrink-0">
-            <button
-              onClick={() => setSelectedCategoryFilter(cat.id)}
-              className={`px-3 py-1 rounded-l-lg text-xs font-bold transition ${
-                selectedCategoryFilter === cat.id
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-              }`}
-            >
-              {cat.label}
-            </button>
-            {isSuperAdmin && (
-              <button
-                onClick={() => handleDeleteCategory(cat.id, cat.label)}
-                className="px-1.5 py-1 bg-red-50 hover:bg-red-100 dark:bg-red-950/60 dark:hover:bg-red-900 text-red-600 rounded-r-lg border-l border-slate-200 dark:border-slate-700 text-[10px] transition"
-                title={`Delete Category ${cat.label}`}
-              >
-                ✕
-              </button>
-            )}
-          </div>
+          <button
+            key={cat.id}
+            onClick={() => setSelectedCategoryFilter(cat.id)}
+            className={`px-3 py-1 rounded-lg text-xs font-bold transition shrink-0 ${
+              selectedCategoryFilter === cat.id
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+            }`}
+          >
+            {cat.label}
+          </button>
         ))}
       </div>
 
@@ -1058,7 +1133,8 @@ export const StoreInventoryManager: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
                   {(activeSubTab === 'low_stock' ? lowStockItems : filteredItems).map(item => {
-                    const isLow = item.currentStock <= item.minBufferThreshold;
+                    const safeStock = Math.max(0, Number(item.currentStock || 0));
+                    const isLow = safeStock <= (item.minBufferThreshold || 5);
                     return (
                       <tr
                         key={item.id}
@@ -1108,16 +1184,25 @@ export const StoreInventoryManager: React.FC = () => {
                         <div className="text-[11px] text-slate-500 dark:text-slate-400">{item.specification}</div>
                       </td>
                       <td className="p-3.5">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
-                          {item.categoryLabel || item.category}
-                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setChangeCategoryTargetItem(item);
+                            setSelectedNewCategory(item.category || 'T&P');
+                          }}
+                          className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-950 hover:border-blue-300 flex items-center gap-1 transition shadow-sm"
+                          title="Click to change category"
+                        >
+                          <span>{item.categoryLabel || item.category}</span>
+                          <span className="text-[9px] text-blue-500">✏️</span>
+                        </button>
                       </td>
                       <td className="p-3.5">
                         <div className="flex items-center gap-1.5">
                           <span className={`text-sm font-black font-mono ${
                             isLow ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-white'
                           }`}>
-                            {item.currentStock.toLocaleString()}
+                            {safeStock.toLocaleString()}
                           </span>
                           <span className="text-[10px] text-slate-500 font-bold">{item.unit}</span>
                           {isLow && (
@@ -1127,8 +1212,19 @@ export const StoreInventoryManager: React.FC = () => {
                           )}
                         </div>
                       </td>
-                      <td className="p-3.5 font-mono text-slate-600 dark:text-slate-400">
-                        {item.minBufferThreshold.toLocaleString()} {item.unit}
+                      <td className="p-3.5 font-mono">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditBufferTargetItem(item);
+                            setNewBufferValue(item.minBufferThreshold || 5);
+                          }}
+                          className="hover:underline flex items-center gap-1 text-slate-700 dark:text-slate-300 font-bold"
+                          title="Click to edit minimum buffer threshold"
+                        >
+                          <span>{(item.minBufferThreshold || 5).toLocaleString()} {item.unit}</span>
+                          <span className="text-[10px] text-amber-500 hover:text-amber-600">✏️</span>
+                        </button>
                       </td>
                       <td className="p-3.5 font-mono text-slate-700 dark:text-slate-300">
                         ₹{(item.unitRate || 0).toLocaleString()}
@@ -1141,6 +1237,19 @@ export const StoreInventoryManager: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => {
+                              setChangeCategoryTargetItem(item);
+                              setSelectedNewCategory(item.category || 'T&P');
+                            }}
+                            className="px-2 py-1 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900 text-purple-800 dark:text-purple-300 rounded-lg text-[11px] font-bold transition border border-purple-200 dark:border-purple-800 flex items-center gap-1 shadow-sm"
+                            title="Change Item Category"
+                          >
+                            <Layers className="w-3 h-3" />
+                            <span>Category</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
                               setReallocateTargetItem(item);
                               setReallocateCodeInput(String(item.itemCode || ''));
                               setReallocatePriceListInput(String(item.priceListCode || item.itemCode || ''));
@@ -1148,7 +1257,7 @@ export const StoreInventoryManager: React.FC = () => {
                               setReallocateDuplicateWarning(null);
                               setReallocateSuccessMsg(null);
                             }}
-                            className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/60 dark:hover:bg-amber-900 text-amber-800 dark:text-amber-300 rounded-lg text-[11px] font-bold transition border border-amber-200 dark:border-amber-800 flex items-center gap-1 shadow-sm"
+                            className="px-2 py-1 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/60 dark:hover:bg-amber-900 text-amber-800 dark:text-amber-300 rounded-lg text-[11px] font-bold transition border border-amber-200 dark:border-amber-800 flex items-center gap-1 shadow-sm"
                             title="Reallocate / Edit SAP Item Code"
                           >
                             <span>✏️</span>
@@ -1157,11 +1266,11 @@ export const StoreInventoryManager: React.FC = () => {
 
                           <button
                             onClick={() => setSelectedItemForQR(item)}
-                            className="px-2.5 py-1 bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-950/60 dark:hover:bg-cyan-900 text-cyan-800 dark:text-cyan-300 rounded-lg text-[11px] font-bold transition border border-cyan-200 dark:border-cyan-800 flex items-center gap-1 shadow-sm"
+                            className="px-2 py-1 bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-950/60 dark:hover:bg-cyan-900 text-cyan-800 dark:text-cyan-300 rounded-lg text-[11px] font-bold transition border border-cyan-200 dark:border-cyan-800 flex items-center gap-1 shadow-sm"
                             title="Generate & Print Dynamic QR Code for Bin Label"
                           >
                             <QrCode className="w-3.5 h-3.5" />
-                            <span>QR Label</span>
+                            <span>QR</span>
                           </button>
 
                           <button
@@ -1171,7 +1280,7 @@ export const StoreInventoryManager: React.FC = () => {
                               setTxnFormData(prev => ({ ...prev, itemId: item.id, quantity: 1, purposeOrSection: 'IMSD/USED' }));
                               setIsTxnModalOpen(true);
                             }}
-                            className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 text-emerald-800 dark:text-emerald-300 rounded-lg text-[11px] font-bold transition border border-emerald-200 dark:border-emerald-800"
+                            className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 text-emerald-800 dark:text-emerald-300 rounded-lg text-[11px] font-bold transition border border-emerald-200 dark:border-emerald-800"
                             title="Receive Inward Stock"
                           >
                             + Inward
@@ -1184,7 +1293,7 @@ export const StoreInventoryManager: React.FC = () => {
                               setTxnFormData(prev => ({ ...prev, itemId: item.id, quantity: 1, purposeOrSection: 'Track Maintenance' }));
                               setIsTxnModalOpen(true);
                             }}
-                            className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900 text-blue-800 dark:text-cyan-300 rounded-lg text-[11px] font-bold transition border border-blue-200 dark:border-blue-800"
+                            className="px-2 py-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900 text-blue-800 dark:text-cyan-300 rounded-lg text-[11px] font-bold transition border border-blue-200 dark:border-blue-800"
                             title="Issue to Staff / Gang"
                           >
                             - Issue
@@ -1217,9 +1326,8 @@ export const StoreInventoryManager: React.FC = () => {
       {activeSubTab === 'source_tally' && <ImsdSourceTallyBook />}
 
       {/* ------------------------------------------------------------------------- */}
-      {/* 2. DEPARTMENTAL LEDGER AND TALLY BOOK (विभागीय खाता मिलान पुस्तक) */}
+      {/* 3. DEPARTMENTAL LEDGER AND TALLY BOOK (विभागीय खाता मिलान पुस्तक) */}
       {/* ------------------------------------------------------------------------- */}
-      {activeSubTab === 'source_tally' && <ImsdSourceTallyBook />}
 
       {activeSubTab === 'tally_book' && selectedItemForTally && (
         <div className="bg-white dark:bg-slate-900 border-2 border-purple-300 dark:border-purple-800 rounded-3xl shadow-xl overflow-hidden animate-fadeIn">
@@ -1380,7 +1488,7 @@ export const StoreInventoryManager: React.FC = () => {
                 ) : (
                   tallyTransactions.map((tx, idx) => (
                     <tr key={tx.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 text-center">
-                      <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono">{tx.date}</td>
+                      <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono">{formatToDDMMYYYY(tx.date)}</td>
                       <td className="p-3 border border-slate-300 dark:border-slate-700 text-red-600 font-bold">{tx.referenceNo}</td>
                       <td className="p-3 border border-slate-300 dark:border-slate-700">{tx.issuedToOrReceivedFrom}</td>
                       <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono">{tx.purposeOrSection}</td>
@@ -1394,7 +1502,7 @@ export const StoreInventoryManager: React.FC = () => {
                         {tx.type === 'OUTWARD' ? Number(tx.quantity).toFixed(2) : '0.00'}
                       </td>
                       <td className="p-3 border border-slate-300 dark:border-slate-700 text-red-600 font-black font-mono bg-blue-50/30">
-                        {Number(tx.balanceQty ?? selectedItemForTally.currentStock).toFixed(2)}
+                        {Math.max(0, Number(tx.balanceQty ?? selectedItemForTally.currentStock)).toFixed(2)}
                       </td>
                     </tr>
                   ))
@@ -1414,7 +1522,7 @@ export const StoreInventoryManager: React.FC = () => {
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold uppercase text-[10px]">
-                  <th className="p-3.5">Date</th>
+                  <th className="p-3.5">Date (DD-MM-YYYY)</th>
                   <th className="p-3.5">Ref / Voucher No.</th>
                   <th className="p-3.5">Material Description</th>
                   <th className="p-3.5">Type</th>
@@ -1429,7 +1537,7 @@ export const StoreInventoryManager: React.FC = () => {
                   const isInward = txn.type === 'INWARD';
                   return (
                     <tr key={txn.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition">
-                      <td className="p-3.5 font-mono text-slate-600 dark:text-slate-400">{txn.date}</td>
+                      <td className="p-3.5 font-mono text-slate-600 dark:text-slate-400">{formatToDDMMYYYY(txn.date)}</td>
                       <td className="p-3.5 font-mono font-bold text-blue-700 dark:text-cyan-400">{txn.referenceNo}</td>
                       <td className="p-3.5 font-bold text-slate-900 dark:text-white">{txn.itemName}</td>
                       <td className="p-3.5">
@@ -2487,6 +2595,155 @@ export const StoreInventoryManager: React.FC = () => {
                 >
                   <Check className="w-4 h-4" />
                   <span>{isReallocating ? 'Saving Code...' : 'Save & Reallocate Code'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------------------- */}
+      {/* 8. CHANGE ITEM CATEGORY MODAL */}
+      {/* ------------------------------------------------------------------------- */}
+      {changeCategoryTargetItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden text-slate-900 dark:text-white p-6 space-y-4 animate-scaleUp">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-400">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-[#0f2b5c] dark:text-white">
+                    Change Item Category
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    {changeCategoryTargetItem.name} ({changeCategoryTargetItem.priceListCode || changeCategoryTargetItem.itemCode})
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setChangeCategoryTargetItem(null)}
+                className="p-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveChangeCategory} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Select New Category:
+                </label>
+                <div className="grid grid-cols-1 gap-2">
+                  {allCategories.map(cat => (
+                    <label
+                      key={cat.id}
+                      className={`flex items-center justify-between p-3 rounded-xl border text-xs font-bold cursor-pointer transition ${
+                        selectedNewCategory === cat.id
+                          ? 'bg-purple-50 dark:bg-purple-950/60 border-purple-500 text-purple-900 dark:text-purple-200'
+                          : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="categoryChoice"
+                          value={cat.id}
+                          checked={selectedNewCategory === cat.id}
+                          onChange={() => setSelectedNewCategory(cat.id)}
+                          className="text-purple-600 focus:ring-purple-500"
+                        />
+                        <span>{cat.label}</span>
+                      </span>
+                      {selectedNewCategory === cat.id && <Check className="w-4 h-4 text-purple-600" />}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setChangeCategoryTargetItem(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white rounded-xl font-black text-xs shadow-lg transition active:scale-95 flex items-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Update Category</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------------------- */}
+      {/* 9. EDIT MINIMUM SAFETY BUFFER MODAL */}
+      {/* ------------------------------------------------------------------------- */}
+      {editBufferTargetItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden text-slate-900 dark:text-white p-6 space-y-4 animate-scaleUp">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-[#0f2b5c] dark:text-white">
+                    Edit Minimum Buffer Threshold
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    {editBufferTargetItem.name} ({editBufferTargetItem.priceListCode || editBufferTargetItem.itemCode})
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditBufferTargetItem(null)}
+                className="p-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditBuffer} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Minimum Buffer Stock ({editBufferTargetItem.unit}):
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  required
+                  value={newBufferValue}
+                  onChange={e => setNewBufferValue(Math.max(0, Number(e.target.value)))}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-black font-mono focus:outline-none focus:border-amber-500 text-slate-900 dark:text-white"
+                />
+                <p className="text-[11px] text-slate-500 font-medium">
+                  When current stock falls below or equals this value, the item triggers a <strong>Low Stock Alert</strong> in the portal.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditBufferTargetItem(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-xl font-black text-xs shadow-lg transition active:scale-95 flex items-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Save Buffer</span>
                 </button>
               </div>
             </form>

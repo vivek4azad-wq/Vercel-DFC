@@ -93,7 +93,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
 
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                Official User ID / Email / Phone
+                Official Mobile No. / Employee ID / Email
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
@@ -104,7 +104,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                   required
                   value={identifier}
                   onChange={e => setIdentifier(e.target.value)}
-                  placeholder="e.g. vkazad@dfcc.co.in or 8872671873"
+                  placeholder="e.g. 8872671873, 101518, or vkazad@dfcc.co.in"
                   className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500 transition placeholder:text-slate-600"
                 />
               </div>
@@ -121,7 +121,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                   className="text-[11px] text-emerald-400 hover:text-emerald-300 hover:underline font-medium flex items-center gap-1"
                 >
                   <MessageSquare className="w-3 h-3" />
-                  <span>Change via WhatsApp</span>
+                  <span>Generate / Change PIN</span>
                 </button>
               </div>
               <div className="relative">

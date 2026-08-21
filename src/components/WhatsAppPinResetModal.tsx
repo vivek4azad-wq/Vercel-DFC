@@ -259,11 +259,25 @@ export const WhatsAppPinResetModal: React.FC<WhatsAppPinResetModalProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
-                    New 6-Digit PIN *
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-slate-300">
+                      New 6-Digit PIN *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const rnd = Math.floor(100000 + Math.random() * 900000).toString();
+                        setNewPin(rnd);
+                        setConfirmPin(rnd);
+                      }}
+                      className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 underline flex items-center gap-0.5"
+                      title="Auto-generate a random 6-digit PIN"
+                    >
+                      <span>🎲 Random PIN</span>
+                    </button>
+                  </div>
                   <input
-                    type="password"
+                    type="text"
                     required
                     maxLength={6}
                     placeholder="••••••"
@@ -278,7 +292,7 @@ export const WhatsAppPinResetModal: React.FC<WhatsAppPinResetModalProps> = ({
                     Confirm 6-Digit PIN *
                   </label>
                   <input
-                    type="password"
+                    type="text"
                     required
                     maxLength={6}
                     placeholder="••••••"

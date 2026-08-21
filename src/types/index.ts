@@ -239,7 +239,7 @@ export interface LevelCrossingRecord {
 // 4. Officers & Staff (Target: 14 items)
 // ---------------------------------------------------------------------------
 
-export type AppUserRole = 'APM' | 'Executive' | 'MTS' | 'StoreKeeper';
+export type AppUserRole = 'Admin' | 'Sectional' | 'Clerk' | 'MTS' | 'StoreKeeper' | 'Guest' | 'APM' | 'Executive';
 
 export type StaffCategory = 'PERMANENT' | 'OUTSOURCE' | 'EX_SERVICEMAN';
 export type StaffDutyType = 'OFFICER' | 'KEYMAN' | 'PATROLMAN' | 'GATEMAN' | 'WATCHMAN' | 'OFFICE' | 'GANG' | 'MTS';

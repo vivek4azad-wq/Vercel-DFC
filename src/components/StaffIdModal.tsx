@@ -104,6 +104,23 @@ export const StaffIdModal: React.FC<StaffIdModalProps> = ({ staff, isOpen, onClo
   
   const displayCategory = staff.category || (staff.employmentType === 'REGULAR' ? 'Permanent (Regular)' : (staff.staffCategory === 'EX_SERVICEMAN' ? 'Ex-Serviceman' : 'Outsourced Staff'));
 
+  const isPermanentStaff = staff.category === 'PERMANENT' || 
+    staff.employmentType === 'REGULAR' ||
+    staff.employmentType === 'PERMANENT' ||
+    staff.staffCategory === 'PERMANENT' ||
+    ['APM', 'JPM', 'SR.EXEC', 'EXECUTIVE', 'JR.EXECUTIVE', 'MTS', 'DY.PM'].some(d => 
+      (staff.designation || '').toUpperCase().includes(d) || (staff.post || '').toUpperCase().includes(d) || (staff.role || '').toUpperCase().includes(d)
+    );
+
+  const staffNameLower = (staff.name || '').toLowerCase();
+  const permanentPosting = (staffNameLower.includes('sudheer') || staffNameLower.includes('sudhir') || staffNameLower.includes('suraj'))
+    ? 'New Khanna (KNNN)'
+    : (staffNameLower.includes('gaya prashad') || staffNameLower.includes('gaya prasad'))
+    ? 'New Chawa Pail (CHAN)'
+    : 'New Shambhu (SMUN)';
+
+  const permanentUnit = 'AMBALA';
+
   const handlePrint = () => {
     window.print();
   };
@@ -272,23 +289,47 @@ export const StaffIdModal: React.FC<StaffIdModalProps> = ({ staff, isOpen, onClo
                       </span>
                     </div>
 
-                    <div>
-                      <span className="text-[8px] font-bold uppercase text-slate-500 block">
-                        BEAT / POSTING:
-                      </span>
-                      <span className="font-semibold text-slate-800 block truncate">
-                        {displayBeat}
-                      </span>
-                    </div>
+                    {isPermanentStaff ? (
+                      <>
+                        <div>
+                          <span className="text-[8px] font-bold uppercase text-slate-500 block">
+                            PLACE OF POSTING:
+                          </span>
+                          <span className="font-bold text-blue-900 block truncate">
+                            {permanentPosting}
+                          </span>
+                        </div>
 
-                    <div>
-                      <span className="text-[8px] font-bold uppercase text-slate-500 block">
-                        SECTION / KM:
-                      </span>
-                      <span className="font-mono font-semibold text-slate-800 text-[10px] block truncate">
-                        {displayKmRange}
-                      </span>
-                    </div>
+                        <div>
+                          <span className="text-[8px] font-bold uppercase text-slate-500 block">
+                            UNIT:
+                          </span>
+                          <span className="font-black text-emerald-800 font-mono text-xs block truncate">
+                            {permanentUnit}
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <span className="text-[8px] font-bold uppercase text-slate-500 block">
+                            BEAT / POSTING:
+                          </span>
+                          <span className="font-semibold text-slate-800 block truncate">
+                            {displayBeat}
+                          </span>
+                        </div>
+
+                        <div>
+                          <span className="text-[8px] font-bold uppercase text-slate-500 block">
+                            SECTION / KM:
+                          </span>
+                          <span className="font-mono font-semibold text-slate-800 text-[10px] block truncate">
+                            {displayKmRange}
+                          </span>
+                        </div>
+                      </>
+                    )}
 
                     <div>
                       <span className="text-[8px] font-bold uppercase text-slate-500 block">
@@ -299,7 +340,7 @@ export const StaffIdModal: React.FC<StaffIdModalProps> = ({ staff, isOpen, onClo
                       </span>
                     </div>
 
-                    <div className="col-span-2">
+                    <div className={isPermanentStaff ? '' : 'col-span-2'}>
                       <span className="text-[8px] font-bold uppercase text-slate-500 block">
                         RESIDENCE / HQ:
                       </span>

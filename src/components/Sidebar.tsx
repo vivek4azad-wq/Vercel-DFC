@@ -24,7 +24,8 @@ import {
   HardHat,
   Package,
   Key,
-  ShieldAlert
+  ShieldAlert,
+  Activity
 } from 'lucide-react';
 
 import { DGRStaffFinderModal } from './DGRStaffFinderModal.tsx';
@@ -40,7 +41,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
   const [isDgrFinderOpen, setIsDgrFinderOpen] = useState(false);
   const isSuperAdmin = role === 'SUPER_ADMIN' || currentAppRole === 'APM';
 
-  const masterNavItems = [
+  const navItems = useMemo(() => {
+    const masterNavItems = [
     {
       id: 'analytics',
       label: 'Analytics Dashboard',
@@ -138,10 +140,35 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
       : [])
   ];
 
-  // Strictly enforce role-based menu items
-  const navItems = useMemo(() => {
+    if (currentAppRole === 'Clerk') {
+      // 🔒 Clerk: Only able to see absentee statement & mark present/absent accordingly
+      return [
+        {
+          id: 'attendance',
+          label: 'Staff Attendance & Roster',
+          shortLabel: 'Attendance',
+          icon: CalendarCheck,
+          badge: 'Daily'
+        },
+        {
+          id: 'staff',
+          label: 'Staff Directory',
+          shortLabel: 'Staff',
+          icon: Users,
+          badge: '82'
+        },
+        {
+          id: 'kmfinder',
+          label: 'Km Quick Finder',
+          shortLabel: 'Km Finder',
+          icon: Search,
+          badge: 'Quick'
+        }
+      ];
+    }
+
     if (currentAppRole === 'MTS' || role === 'STAFF') {
-      // 🔒 Strictly visible for MTS: KM Finder, P.Way, Staff, and own attendance (No inspection tab)
+      // 🔒 MTS: Quick search, linear diagram, and P.way gang entry
       return [
         {
           id: 'kmfinder',
@@ -151,18 +178,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
           badge: 'Quick'
         },
         {
+          id: 'diagram',
+          label: 'Track Schematic Diagram',
+          shortLabel: 'Linear View',
+          icon: Activity,
+          badge: '88.6Km'
+        },
+        {
           id: 'pway_work',
           label: 'P.Way Work (1+15 Gang)',
           shortLabel: 'P.Way',
           icon: HardHat,
           badge: 'Field'
-        },
-        {
-          id: 'staff',
-          label: 'Staff Directory',
-          shortLabel: 'Staff',
-          icon: Users,
-          badge: '82'
         },
         {
           id: 'attendance',
@@ -175,7 +202,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
     }
 
     if (currentAppRole === 'StoreKeeper' || role === 'STORE_KEEPER') {
-      // 🔒 Strictly visible for Store Keeper: Store Inventory, KM Finder, and Staff Directory (No inspection tab)
+      // 🔒 Store Keeper: only able to see the store related services
       return [
         {
           id: 'store',
@@ -190,6 +217,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
           shortLabel: 'Km Finder',
           icon: Search,
           badge: 'Finder'
+        }
+      ];
+    }
+
+    if (currentAppRole === 'Guest') {
+      // 🔒 Guest: View-only guest mode
+      return [
+        {
+          id: 'kmfinder',
+          label: 'Km Quick Finder',
+          shortLabel: 'Km Finder',
+          icon: Search,
+          badge: 'Quick'
+        },
+        {
+          id: 'diagram',
+          label: 'Track Schematic Diagram',
+          shortLabel: 'Linear View',
+          icon: Activity,
+          badge: '88.6Km'
         },
         {
           id: 'staff',
@@ -197,6 +244,54 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
           shortLabel: 'Staff',
           icon: Users,
           badge: '82'
+        }
+      ];
+    }
+
+    if (currentAppRole === 'Sectional' || currentAppRole === 'Executive') {
+      // 🔒 Sectional: no edits to assets/staff, can see and modify work of Clerk and MTS
+      return [
+        {
+          id: 'kmfinder',
+          label: 'Km Quick Finder',
+          shortLabel: 'Km Finder',
+          icon: Search,
+          badge: 'Quick'
+        },
+        {
+          id: 'diagram',
+          label: 'Track Schematic Diagram',
+          shortLabel: 'Linear View',
+          icon: Activity,
+          badge: '88.6Km'
+        },
+        {
+          id: 'pway_work',
+          label: 'P.Way Work (1+15 Gang)',
+          shortLabel: 'P.Way',
+          icon: HardHat,
+          badge: 'Review'
+        },
+        {
+          id: 'attendance',
+          label: 'Staff Attendance & Roster',
+          shortLabel: 'Attendance',
+          icon: CalendarCheck,
+          badge: 'Review'
+        },
+        {
+          id: 'staff',
+          label: 'Staff Directory (View)',
+          shortLabel: 'Staff',
+          icon: Users,
+          badge: '82'
+        },
+        {
+          id: 'defects',
+          label: 'Track Defects Logs',
+          shortLabel: 'Defects',
+          icon: AlertTriangle,
+          badge: 'Logs'
         }
       ];
     }

@@ -61,6 +61,17 @@ interface StaffDirectoryProps {
   initialTab?: 'master' | 'officers' | 'outsourced' | 'keymen' | 'gatemen' | 'patrol' | 'watchmen';
 }
 
+const getPermanentStaffPosting = (name?: string): string => {
+  const n = (name || '').toLowerCase();
+  if (n.includes('sudheer') || n.includes('sudhir') || n.includes('suraj')) {
+    return 'New Khanna (KNNN)';
+  }
+  if (n.includes('gaya prashad') || n.includes('gaya prasad')) {
+    return 'New Chawa Pail (CHAN)';
+  }
+  return 'New Shambhu (SMUN)';
+};
+
 const DEFAULT_BEAT_ROUTES: Record<string, { fromKm: number; toKm: number; section: string; shiftHoursDay: string; shiftHoursNight: string }> = {
   'SPD-01': { fromKm: 1162.170, toKm: 1170.160, section: 'B 1162/17 to C 1170/16', shiftHoursDay: '15:00 - 23:00', shiftHoursNight: '23:00 - 07:00' },
   'SPD-02': { fromKm: 1170.160, toKm: 1178.120, section: 'B 1170/16 to C 1178/12', shiftHoursDay: '15:00 - 23:00', shiftHoursNight: '23:00 - 07:00' },
@@ -121,6 +132,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
  const [selectedStaffForIdModal, setSelectedStaffForIdModal] = useState<UnifiedStaffModalData | null>(null);
  const [isScannerOpen, setIsScannerOpen] = useState(false);
  const [isDgrFinderModalOpen, setIsDgrFinderModalOpen] = useState(false);
+ const [staffViewMode, setStaffViewMode] = useState<'cards' | 'list'>('cards');
 
  // Profile / Photo Upload Modal
  const [photoModalTarget, setPhotoModalTarget] = useState<{
@@ -2310,169 +2322,301 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
 
   {activeTab === 'officers' && (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-base sm:text-lg font-bold text-[#0f2b5c] dark:text-cyan-300 flex items-center gap-2">
-          <span>🏆</span>
-          <span>DFCCIL IMSD-SMUN Official Contact Directory</span>
-        </h2>
-        <span className="text-xs text-slate-500 font-semibold">
-          Total {regularStaff.length} Officers &amp; Staff
-        </span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div>
+          <h2 className="text-base sm:text-lg font-black text-[#0f2b5c] dark:text-cyan-300 flex items-center gap-2">
+            <span>🏆</span>
+            <span>DFCCIL IMSD-SMUN Official Contact Directory</span>
+          </h2>
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
+            Unit: <strong className="text-emerald-700 dark:text-emerald-400 font-mono">AMBALA</strong> • Total {regularStaff.length} Officers &amp; Permanent Staff
+          </p>
+        </div>
+
+        {/* 🪪 View Mode Switcher Toggle: 3-Card Grid vs Table/List */}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+            <button
+              type="button"
+              onClick={() => setStaffViewMode('cards')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                staffViewMode === 'cards'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <span>🪪 ID Cards (3-Grid)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setStaffViewMode('list')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                staffViewMode === 'list'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <span>📋 Table / List</span>
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {regularStaff.map(staff => {
-          const stationPill = getStationPillText(staff.headquarters);
-          return (
-            <div
-              key={staff.id}
-              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-3 group"
-            >
-              <div className="space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-base font-black text-slate-900 dark:text-white leading-snug break-words group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition">
-                      {staff.name}
-                    </h3>
-                    {staff.nameHi && (
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 break-words">{staff.nameHi}</p>
-                    )}
-                  </div>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800 tracking-wide shrink-0 whitespace-nowrap">
-                    {stationPill}
-                  </span>
-                </div>
-
-                <div>
-                  <p className="text-xs text-blue-700 dark:text-cyan-400 font-extrabold tracking-tight uppercase">
-                    {staff.post || staff.role}
-                  </p>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-0.5">
-                    Emp ID: <span className="font-bold text-slate-900 dark:text-slate-200">{staff.id.replace('EMP-', '')}</span>
-                  </p>
-                </div>
-
-                <div className="space-y-1 pt-1 text-xs">
-                  {staff.phone && (
-                    <div className="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200">
-                      <span className="text-blue-600 dark:text-cyan-400 text-sm">📞</span>
-                      <span>{staff.phone}</span>
-                    </div>
-                  )}
-                  {staff.email && (
-                    <div className="flex items-center gap-1.5 text-blue-600 dark:text-cyan-400 truncate text-[11px]">
-                      <span className="text-slate-400">✉️</span>
-                      <span className="truncate">{staff.email}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5 flex-1">
-                  <a
-                    href={`tel:${staff.phone?.replace(/[^0-9+]/g, '')}`}
-                    className="flex-1 py-1.5 px-2 bg-[#1a4b8c] hover:bg-[#123668] text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1 shadow-sm transition"
-                  >
-                    <Phone className="w-3.5 h-3.5" />
-                    <span>Call</span>
-                  </a>
-
-                  <button
-                    type="button"
-                    onClick={() => setSelectedStaffForIdModal(staff)}
-                    className="flex-1 py-1.5 px-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 rounded-lg text-xs font-bold flex items-center justify-center gap-1 shadow-sm transition"
-                    title="View Official DFCCIL Staff ID Card"
-                  >
-                    <span>🪪 ID</span>
-                  </button>
-                </div>
-
-                {/* 3-Dot Action Menu */}
-                <div className="relative shrink-0">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setOpenCardMenuId(openCardMenuId === `officer-${staff.id}` ? null : `officer-${staff.id}`);
-                    }}
-                    className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg transition"
-                    title="More Options"
-                  >
-                    <MoreVertical className="w-3.5 h-3.5" />
-                  </button>
-
-                  {openCardMenuId === `officer-${staff.id}` && (
-                    <div
-                      onClick={(e) => e.stopPropagation()}
-                      className="absolute right-0 bottom-full mb-1.5 w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl p-1.5 z-40 space-y-1 text-xs text-left animate-fadeIn backdrop-blur-xl"
-                    >
-                      <button
-                        onClick={() => {
-                          setPhotoModalTarget({
-                            collection: 'officers_staff',
-                            id: staff.id,
-                            name: staff.name,
-                            currentPhoto: staff.photoUrl
-                          });
-                          setOpenCardMenuId(null);
-                        }}
-                        className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/60 text-slate-800 dark:text-slate-200 flex items-center gap-2"
-                      >
-                        <Camera className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
-                        <span>Upload Photo</span>
-                      </button>
-
-                      {isSuperAdmin && (
-                        <>
-                          <button
-                            onClick={() => {
-                              setEditingStaffId(staff.id);
-                              setStaffFormData({
-                                name: staff.name,
-                                nameHi: staff.nameHi || '',
-                                post: staff.post,
-                                role: staff.role,
-                                employmentType: staff.employmentType,
-                                email: staff.email,
-                                phone: staff.phone,
-                                headquarters: staff.headquarters,
-                                assignedSection: staff.assignedSection,
-                                awpoId: staff.awpoId || '',
-                                advanceBeatCode: '',
-                                lap: staff.leaveBalance?.lap || 30,
-                                cl: staff.leaveBalance?.cl || 8,
-                                photoUrl: staff.photoUrl || ''
-                              });
-                              setIsStaffFormOpen(true);
-                              setOpenCardMenuId(null);
-                            }}
-                            className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/60 text-amber-700 dark:text-amber-400 flex items-center gap-2 font-semibold"
-                          >
-                            <Edit className="w-3.5 h-3.5" />
-                            <span>Edit Details</span>
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              handleDeleteStaff(staff.id, staff.name);
-                              setOpenCardMenuId(null);
-                            }}
-                            className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/60 text-red-600 dark:text-red-400 flex items-center gap-2 font-semibold"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            <span>Delete Officer</span>
-                          </button>
-                        </>
+      {staffViewMode === 'cards' ? (
+        /* 3-Column ID Cards Grid */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4.5">
+          {regularStaff.map(staff => {
+            const posting = getPermanentStaffPosting(staff.name);
+            return (
+              <div
+                key={staff.id}
+                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-3 group"
+              >
+                <div className="space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base font-black text-slate-900 dark:text-white leading-snug break-words group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition">
+                        {staff.name}
+                      </h3>
+                      {staff.nameHi && (
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 break-words font-medium">{staff.nameHi}</p>
                       )}
                     </div>
-                  )}
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800 tracking-wide shrink-0 whitespace-nowrap shadow-sm">
+                      {posting}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Designation</span>
+                      <p className="text-xs text-blue-700 dark:text-cyan-400 font-extrabold tracking-tight uppercase truncate">
+                        {staff.post || staff.role}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Emp ID</span>
+                      <p className="text-xs text-slate-800 dark:text-slate-200 font-mono font-black">
+                        {staff.id.replace('EMP-', '')}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Posting</span>
+                      <p className="text-xs text-slate-700 dark:text-slate-300 font-bold truncate">
+                        {posting}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Unit</span>
+                      <p className="text-xs text-emerald-700 dark:text-emerald-400 font-mono font-black">
+                        AMBALA
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1 pt-1 text-xs">
+                    {staff.phone && (
+                      <div className="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200">
+                        <span className="text-blue-600 dark:text-cyan-400 text-sm">📞</span>
+                        <span className="font-mono">{staff.phone}</span>
+                      </div>
+                    )}
+                    {staff.email && (
+                      <div className="flex items-center gap-1.5 text-blue-600 dark:text-cyan-400 truncate text-[11px]">
+                        <span className="text-slate-400">✉️</span>
+                        <span className="truncate">{staff.email}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 flex-1">
+                    <a
+                      href={`tel:${staff.phone?.replace(/[^0-9+]/g, '')}`}
+                      className="flex-1 py-1.5 px-2 bg-[#1a4b8c] hover:bg-[#123668] text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1 shadow-sm transition"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                      <span>Call</span>
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedStaffForIdModal(staff)}
+                      className="flex-1 py-1.5 px-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 rounded-lg text-xs font-bold flex items-center justify-center gap-1 shadow-sm transition"
+                      title="View Official DFCCIL Staff ID Card"
+                    >
+                      <span>🪪 ID</span>
+                    </button>
+                  </div>
+
+                  {/* 3-Dot Action Menu */}
+                  <div className="relative shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenCardMenuId(openCardMenuId === `officer-${staff.id}` ? null : `officer-${staff.id}`);
+                      }}
+                      className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg transition"
+                      title="More Options"
+                    >
+                      <MoreVertical className="w-3.5 h-3.5" />
+                    </button>
+
+                    {openCardMenuId === `officer-${staff.id}` && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute right-0 bottom-full mb-1.5 w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl p-1.5 z-40 space-y-1 text-xs text-left animate-fadeIn backdrop-blur-xl"
+                      >
+                        <button
+                          onClick={() => {
+                            setPhotoModalTarget({
+                              collection: 'officers_staff',
+                              id: staff.id,
+                              name: staff.name,
+                              currentPhoto: staff.photoUrl
+                            });
+                            setOpenCardMenuId(null);
+                          }}
+                          className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/60 text-slate-800 dark:text-slate-200 flex items-center gap-2"
+                        >
+                          <Camera className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
+                          <span>Upload Photo</span>
+                        </button>
+
+                        {isSuperAdmin && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setEditingStaffId(staff.id);
+                                setStaffFormData({
+                                  name: staff.name,
+                                  nameHi: staff.nameHi || '',
+                                  post: staff.post,
+                                  role: staff.role,
+                                  employmentType: staff.employmentType,
+                                  email: staff.email,
+                                  phone: staff.phone,
+                                  headquarters: staff.headquarters,
+                                  assignedSection: staff.assignedSection,
+                                  awpoId: staff.awpoId || '',
+                                  advanceBeatCode: '',
+                                  lap: staff.leaveBalance?.lap || 30,
+                                  cl: staff.leaveBalance?.cl || 8,
+                                  photoUrl: staff.photoUrl || ''
+                                });
+                                setIsStaffFormOpen(true);
+                                setOpenCardMenuId(null);
+                              }}
+                              className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/60 text-amber-700 dark:text-amber-400 flex items-center gap-2 font-semibold"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                              <span>Edit Details</span>
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                handleDeleteStaff(staff.id, staff.name);
+                                setOpenCardMenuId(null);
+                              }}
+                              className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/60 text-red-600 dark:text-red-400 flex items-center gap-2 font-semibold"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Delete Officer</span>
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* Structured Table / List View */
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold uppercase text-[10px]">
+                  <th className="p-3.5">Photo</th>
+                  <th className="p-3.5">Emp ID</th>
+                  <th className="p-3.5">Officer / Staff Name</th>
+                  <th className="p-3.5">Designation</th>
+                  <th className="p-3.5">Place of Posting</th>
+                  <th className="p-3.5">Unit</th>
+                  <th className="p-3.5">Contact Mobile</th>
+                  <th className="p-3.5">Official Email</th>
+                  <th className="p-3.5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
+                {regularStaff.map(staff => {
+                  const posting = getPermanentStaffPosting(staff.name);
+                  return (
+                    <tr key={staff.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition">
+                      <td className="p-3">
+                        <div className="w-9 h-9 rounded-full overflow-hidden border border-slate-200 bg-slate-100 flex items-center justify-center font-bold text-xs text-blue-900">
+                          {staff.photoUrl ? (
+                            <img src={staff.photoUrl} alt={staff.name} className="w-full h-full object-cover" />
+                          ) : (
+                            staff.name.substring(0, 2).toUpperCase()
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-3 font-mono font-bold text-blue-700 dark:text-cyan-400">
+                        {staff.id.replace('EMP-', '')}
+                      </td>
+                      <td className="p-3">
+                        <div className="font-bold text-slate-900 dark:text-white">{staff.name}</div>
+                        {staff.nameHi && <div className="text-[10px] text-slate-500">{staff.nameHi}</div>}
+                      </td>
+                      <td className="p-3 font-bold text-blue-900 dark:text-cyan-300 uppercase">
+                        {staff.post || staff.role}
+                      </td>
+                      <td className="p-3">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-50 dark:bg-blue-950 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                          {posting}
+                        </span>
+                      </td>
+                      <td className="p-3 font-mono font-black text-emerald-700 dark:text-emerald-400">
+                        AMBALA
+                      </td>
+                      <td className="p-3 font-mono font-bold text-slate-900 dark:text-slate-200">
+                        {staff.phone || '—'}
+                      </td>
+                      <td className="p-3 text-[11px] text-slate-600 dark:text-slate-400">
+                        {staff.email || '—'}
+                      </td>
+                      <td className="p-3 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <a
+                            href={`tel:${staff.phone?.replace(/[^0-9+]/g, '')}`}
+                            className="px-2.5 py-1 bg-[#1a4b8c] hover:bg-[#123668] text-white rounded-lg text-[11px] font-bold flex items-center gap-1 shadow-sm transition"
+                          >
+                            <Phone className="w-3 h-3" />
+                            <span>Call</span>
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedStaffForIdModal(staff)}
+                            className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 rounded-lg text-[11px] font-bold flex items-center gap-1 shadow-sm transition"
+                          >
+                            <span>🪪 ID</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   )}
 
