@@ -47,7 +47,10 @@ import type {
   PWayDailyWorkRecord,
   PWayScheduleInspectionRecord,
   StoreItemRecord,
-  TrackDefectRecord
+  TrackDefectRecord,
+  BridgeRecord,
+  PointCrossingRecord,
+  CurveRecord
 } from '../types/index.ts';
 
 interface AdminAIChatModalProps {
@@ -100,13 +103,13 @@ export const AdminAIChatModal: React.FC<AdminAIChatModalProps> = ({
 
   // Quick suggestion prompt chips
   const SUGGESTION_PROMPTS = [
-    'How many Keymen & Patrolmen are deployed?',
-    'Show upcoming & overdue inspections',
-    'What is the total JCB work hours logged?',
+    'Br. 163 ka chainage kya hai?',
+    'Beat No. 12 me kaun hai?',
+    '1170 pr ki summary batao',
+    'Gate 159 SPL ke gatemen kaun hain?',
+    'Total JCB work hours kitne hue?',
     'List low buffer materials in store',
-    'Who is assigned to Gate 159 SPL?',
-    'Show 1+15 Gang daily work summary',
-    'Who is Keyman for Beat 6 (Km 1192.5)?'
+    'Show 1+15 Gang daily work summary'
   ];
 
   useEffect(() => {
@@ -148,7 +151,10 @@ export const AdminAIChatModal: React.FC<AdminAIChatModalProps> = ({
 
     try {
       // Query local and Firebase database records
-      const [staff, keymen, patrols, lcs, pwayWorks, inspections, storeItems, defects] = await Promise.all([
+      const [bridges, points, curves, staff, keymen, patrols, lcs, pwayWorks, inspections, storeItems, defects] = await Promise.all([
+        db.getCollection<BridgeRecord>('bridges'),
+        db.getCollection<PointCrossingRecord>('points_crossings'),
+        db.getCollection<CurveRecord>('curves'),
         db.getCollection<OfficerStaffRecord>('officers_staff'),
         db.getCollection<KeymanRecord>('keymen'),
         db.getCollection<PatrolShiftRecord>('patrol_shifts'),
@@ -161,12 +167,18 @@ export const AdminAIChatModal: React.FC<AdminAIChatModalProps> = ({
 
       const qLower = q.toLowerCase();
       let replyText = '';
-      let engineName = 'Groq Llama 3.3 70B';
+      let engineName = 'Groq GPT OSS 120B';
       let latencyMs = 0;
       let suggestedAction: { label: string; tab: string } | undefined;
 
       // Determine navigation suggestion
-      if (qLower.includes('keyman') || qLower.includes('patrol') || qLower.includes('staff')) {
+      if (qLower.includes('bridge') || qLower.includes('br.') || qLower.includes('br ') || qLower.includes('pool')) {
+        suggestedAction = { label: 'Open Bridges Catalog', tab: 'bridges' };
+      } else if (qLower.includes('point') || qLower.includes('turnout') || qLower.includes('p&c')) {
+        suggestedAction = { label: 'View Points & Crossings', tab: 'points_crossings' };
+      } else if (qLower.includes('curve') || qLower.includes('mor')) {
+        suggestedAction = { label: 'View Curves Register', tab: 'categories' };
+      } else if (qLower.includes('keyman') || qLower.includes('patrol') || qLower.includes('staff')) {
         suggestedAction = { label: 'Open Staff Directory', tab: 'staff' };
       } else if (qLower.includes('inspection') || qLower.includes('schedule') || qLower.includes('jcb') || qLower.includes('gang')) {
         suggestedAction = { label: 'Open P-Way Works', tab: 'pway_work' };
@@ -184,6 +196,8 @@ export const AdminAIChatModal: React.FC<AdminAIChatModalProps> = ({
 - SUPER ADMIN / OFFICER: Shri Vivek Kumar Azad (APM/Civil, Emp 101518, 📞 8872671873)
 - EXECUTIVE: Shri Arjun Kumar (Executive/Civil, Emp 104523, 📞 9876543210)
 - TOTAL STAFF: ${staff.length} personnel
+- TOTAL BRIDGES: ${bridges.length} structures (Sample: ${bridges.slice(0, 15).map(b => `Br ${b.bridgeNo || b.bridge_no}${b.oldBridgeNo ? ` (Old: ${b.oldBridgeNo})` : ''} at Km ${b.fromKm || b.km}-${b.toKm || b.km} [${b.structureType || 'Bridge'}]`).join('; ')})
+- POINTS & CROSSINGS: ${points.length} turnouts (Sample: ${points.slice(0, 10).map(p => `Pt ${p.pointNo} at ${p.station} Km ${p.km} [1 in 12 60kg]`).join('; ')})
 - KEYMEN ROSTER: ${keymen.length} Beats (Beats 1 to 18, assigned AWPO Ex-Servicemen)
   Sample Keymen: ${keymen.slice(0, 8).map(k => `Beat ${k.beatNo || k.id}: ${k.name} (Km ${k.fromKm}-${k.toKm}, 📞 ${k.phone})`).join('; ')}
 - PATROL ROSTER: 12 Day Shifts (SPD-01 to SPD-12, 15:00-23:00) + 12 Night Shifts (SPN-01 to SPN-12, 23:00-07:00). RG Bhupinder Singh (📞 7589001321).
@@ -198,7 +212,7 @@ export const AdminAIChatModal: React.FC<AdminAIChatModalProps> = ({
 - TRACK DEFECTS: ${defects.length} USFD/Rail defect points mapped across the section.
 `;
 
-      // 1. PRIMARY ENGINE: Groq Ultra-Fast AI
+      // 1. PRIMARY ENGINE: Groq Ultra-Fast AI (if configured)
       const activeGroqKey = groqApiKey.trim();
       if (activeGroqKey) {
         try {
@@ -207,24 +221,146 @@ export const AdminAIChatModal: React.FC<AdminAIChatModalProps> = ({
           engineName = `Groq ${GROQ_MODELS.find(m => m.id === res.model)?.name || res.model}`;
           latencyMs = res.durationMs;
         } catch (groqErr: any) {
-          console.warn('Groq API Error, seamlessly using built-in semantic engine:', groqErr);
+          console.warn('Groq API Error, seamlessly using built-in semantic search engine:', groqErr);
           replyText = '';
         }
       }
 
-      // 2. FALLBACK: Built-in high-accuracy local railway intelligence engine
+      // 2. FALLBACK: High-Accuracy Built-In Railway Search & Intelligence Engine
       if (!replyText) {
         let localReply = '';
         
-        // Check for specific Beat Number query (e.g. "beat no 12 me kaun h", "beat 6", "beat no. 12")
-        const beatMatch = q.match(/\b(?:beat|bead)\s*(?:no\.?|number)?\s*(\d+)\b/i) || q.match(/\b(\d+)\s*(?:no\.?|number)?\s*beat\b/i);
+        // ----------------------------------------------------
+        // A. Bridge Number Lookups (e.g. "br. 163", "bridge 163", "br 148", "1206/1")
+        // ----------------------------------------------------
+        const bridgeMatch = q.match(/\b(?:br\.?|bridge|bridg|brg|pool)\s*(?:no\.?|number)?\s*([a-zA-Z0-9\/\-\.]+)\b/i) || q.match(/\b([a-zA-Z0-9\/\-\.]+)\s*(?:no\.?)?\s*(?:br\.?|bridge|bridg)\b/i);
+        const bridgeQueryTerm = bridgeMatch ? bridgeMatch[1].trim().toLowerCase() : null;
+
+        // ----------------------------------------------------
+        // B. Points & Crossings Lookups (e.g. "point 101", "turnout 101", "pt 201")
+        // ----------------------------------------------------
+        const ptMatch = q.match(/\b(?:point|pt|turnout|p&c|xing)\s*(?:no\.?|number)?\s*([a-zA-Z0-9\/\-\.]+)\b/i) || q.match(/\b([a-zA-Z0-9\/\-\.]+)\s*(?:no\.?)?\s*(?:point|turnout)\b/i);
+        const ptQueryTerm = ptMatch ? ptMatch[1].trim().toLowerCase() : null;
+
+        // ----------------------------------------------------
+        // C. Curve Lookups (e.g. "curve 14", "curve no. 5")
+        // ----------------------------------------------------
+        const curveMatch = q.match(/\b(?:curve|curv|mor)\s*(?:no\.?|number)?\s*(\d+[a-zA-Z]?)\b/i) || q.match(/\b(\d+[a-zA-Z]?)\s*(?:no\.?)?\s*curve\b/i);
+        const curveQueryTerm = curveMatch ? curveMatch[1].trim().toLowerCase() : null;
+
+        // ----------------------------------------------------
+        // D. Level Crossing Gate Lookups (e.g. "gate 163", "lc 163", "gate 159", "163 c")
+        // ----------------------------------------------------
+        const gateMatch = q.match(/\b(?:gate|lc|crossing|fatak)\s*(?:no\.?|number)?\s*([a-zA-Z0-9\/\-\.]+)\b/i) || q.match(/\b([a-zA-Z0-9\/\-\.]+)\s*(?:no\.?)?\s*(?:gate|lc)\b/i);
+        const gateQueryTerm = gateMatch ? gateMatch[1].trim().toLowerCase() : null;
+
+        // ----------------------------------------------------
+        // E. Beat Number Lookups (e.g. "beat no 12 me kaun h", "beat 6")
+        // ----------------------------------------------------
+        const beatMatch = q.match(/\b(?:beat|bead|keyman)\s*(?:no\.?|number)?\s*(\d+)\b/i) || q.match(/\b(\d+)\s*(?:no\.?|number)?\s*beat\b/i);
         const beatNum = beatMatch ? parseInt(beatMatch[1], 10) : null;
 
-        // Check for specific Km chainage query (e.g. "1170 pr ki summery", "km 1208", "1232.095")
+        // ----------------------------------------------------
+        // F. Km Chainage Lookups (e.g. "1170 pr ki summery", "km 1208", "1232.095")
+        // ----------------------------------------------------
         const kmMatch = q.match(/\b(1[1-2]\d{2}(?:\.\d+)?)\b/) || q.match(/\bkm\s*(\d+(?:\.\d+)?)\b/i);
         const targetKm = kmMatch ? parseFloat(kmMatch[1]) : null;
 
-        if (beatNum !== null) {
+        // 1. Check Bridge Match
+        let matchedBridge: BridgeRecord | undefined;
+        if (bridgeQueryTerm) {
+          matchedBridge = bridges.find(b => {
+            const bNo = (b.bridgeNo || b.bridge_no || '').toLowerCase();
+            const oldNo = (b.oldBridgeNo || b.old_no || '').toLowerCase();
+            const rem = (b.remarks || '').toLowerCase();
+            const id = (b.id || '').toLowerCase();
+            return bNo === bridgeQueryTerm || oldNo === bridgeQueryTerm || bNo.includes(bridgeQueryTerm) || oldNo.includes(bridgeQueryTerm) || rem.includes(`old: ${bridgeQueryTerm}`) || rem.includes(bridgeQueryTerm) || id.includes(bridgeQueryTerm);
+          });
+        }
+
+        // 2. Check Point/Turnout Match
+        let matchedPoint: PointCrossingRecord | undefined;
+        if (ptQueryTerm) {
+          matchedPoint = points.find(p => {
+            const pNo = (p.pointNo || p.point_no || '').toLowerCase();
+            const id = (p.id || '').toLowerCase();
+            return pNo === ptQueryTerm || pNo.includes(ptQueryTerm) || id.includes(ptQueryTerm);
+          });
+        }
+
+        // 3. Check Curve Match
+        let matchedCurve: CurveRecord | undefined;
+        if (curveQueryTerm) {
+          matchedCurve = curves.find(c => {
+            const cNo = (c.curveNo || c.curve_no || '').toString().toLowerCase();
+            const id = (c.id || '').toLowerCase();
+            return cNo === curveQueryTerm || id.includes(curveQueryTerm);
+          });
+        }
+
+        // 4. Check LC Gate Match
+        let matchedGate: LevelCrossingRecord | undefined;
+        if (gateQueryTerm) {
+          matchedGate = lcs.find(l => {
+            const gNo = (l.gateNo || l.lc_no || '').toLowerCase();
+            const id = (l.id || '').toLowerCase();
+            return gNo === gateQueryTerm || gNo.includes(gateQueryTerm) || id.includes(gateQueryTerm);
+          });
+        }
+
+        if (matchedBridge) {
+          const fromK = typeof matchedBridge.fromKm === 'number' ? matchedBridge.fromKm : parseFloat(String(matchedBridge.fromKm || matchedBridge.km || 0));
+          const toK = typeof matchedBridge.toKm === 'number' ? matchedBridge.toKm : parseFloat(String(matchedBridge.toKm || matchedBridge.km || 0));
+          const kmText = fromK > 0 ? (fromK === toK || toK <= 0 ? `Km ${fromK.toFixed(3)}` : `Km ${fromK.toFixed(3)} to ${toK.toFixed(3)}`) : `Km ${(matchedBridge.km || 0).toFixed(3)}`;
+
+          localReply = `🌉 **Bridge Information: Bridge No. ${matchedBridge.bridgeNo || matchedBridge.bridge_no}${matchedBridge.oldBridgeNo ? ` (Old Bridge No. ${matchedBridge.oldBridgeNo})` : ''}**\n\n` +
+            `• **Exact Chainage**: **${kmText}**\n` +
+            `• **Category & Type**: **${matchedBridge.category || 'Bridge'} (${matchedBridge.structureType || matchedBridge.bridgeType || 'MJB/MIB'})**\n` +
+            `• **Section**: **${matchedBridge.sectionCode || matchedBridge.section || '07. NSIR-GVGN / IMSD SMUN'}**\n` +
+            `• **Span Configuration**: **${matchedBridge.spanConfiguration || matchedBridge.span || 'Standard Span'}**\n` +
+            `• **Total Length**: **${matchedBridge.totalLengthMeters || matchedBridge.length || '-'} Meters**\n` +
+            `• **Waterway / Clearance**: **${matchedBridge.waterwayType || matchedBridge.waterway || 'Clear Waterway'}**\n` +
+            `• **Condition Rating**: **${matchedBridge.conditionRating || 'GOOD'}**\n` +
+            `• **Substructure / Superstructure**: ${matchedBridge.substructure || 'RCC Substructure'} / ${matchedBridge.superstructure || 'PSC / Steel Girder'}\n` +
+            `• **Last Inspection Date**: ${matchedBridge.lastInspectionDate || 'Audited'}\n` +
+            (matchedBridge.latitude && matchedBridge.longitude ? `• **GPS Coordinates**: 📍 [${matchedBridge.latitude.toFixed(5)}, ${matchedBridge.longitude.toFixed(5)}](https://www.google.com/maps?q=${matchedBridge.latitude},${matchedBridge.longitude})\n` : '') +
+            `• **Jurisdiction**: IMSD SMUN Unit (APM Sh. Vivek Kumar Azad & Executive Sh. Arjun Kumar)`;
+          suggestedAction = { label: 'Open Bridges Catalog', tab: 'bridges' };
+        } else if (matchedPoint) {
+          localReply = `🔀 **Turnout (P&C) Information: Point No. ${matchedPoint.pointNo}**\n\n` +
+            `• **Station / Yard**: **${matchedPoint.station || 'SMUN / SBJN Yard'}**\n` +
+            `• **Turnout Ratio**: **${matchedPoint.turnoutRatio || '1 in 12'} (${matchedPoint.railSection || '60 Kg'})**\n` +
+            `• **SRJ / Point Chainage**: **Km ${(matchedPoint.km || matchedPoint.srjChainage || 0).toFixed(3)}**\n` +
+            `• **Hand**: **${matchedPoint.hand || matchedPoint.lh_rh || 'LH'} Handed**\n` +
+            `• **Sleeper Type**: **${matchedPoint.sleeperType || 'PSC Turnout Sleepers'}**\n` +
+            `• **Switch Length**: **${matchedPoint.switchLengthMeters || 10.125} Meters**\n` +
+            `• **Condition Rating**: **${matchedPoint.condition || 'GOOD'}**`;
+          suggestedAction = { label: 'View Points & Crossings', tab: 'points_crossings' };
+        } else if (matchedCurve) {
+          localReply = `🔄 **Curve Information: Curve No. ${matchedCurve.curveNo}**\n\n` +
+            `• **Chainage Range**: **Km ${(matchedCurve.fromKm || 0).toFixed(3)} to ${(matchedCurve.toKm || 0).toFixed(3)}**\n` +
+            `• **Radius**: **${matchedCurve.radiusMeters || matchedCurve.radius || '-'} Meters**\n` +
+            `• **Degree of Curvature**: **${matchedCurve.degree || '-'}°**\n` +
+            `• **Total Curve Length**: **${matchedCurve.lengthMeters || matchedCurve.length_m || '-'} Meters**\n` +
+            `• **Superelevation (Cant SE)**: **${matchedCurve.cantMm || matchedCurve.se || 0} mm**\n` +
+            `• **Transition Length**: **${matchedCurve.transitionLengthM || matchedCurve.tl || '-'} m**\n` +
+            `• **Permissible Speed Limit**: **${matchedCurve.speedLimitKmph || 100} Kmph**`;
+          suggestedAction = { label: 'View Curves Register', tab: 'categories' };
+        } else if (matchedGate) {
+          const gatemenList = matchedGate.gatemen && matchedGate.gatemen.length > 0
+            ? matchedGate.gatemen.map((g, i) => `  ${i + 1}. **${g.name}** (AWPO: ${g.id || '-'}, 📞 ${g.mobile || '-'})`).join('\n')
+            : `  1. **${matchedGate.gatemanName || 'Assigned Gatemen'}** (📞 ${matchedGate.gatemanMobile || '-'})`;
+
+          localReply = `🚪 **Level Crossing Information: Gate No. ${matchedGate.gateNo || matchedGate.lc_no}**\n\n` +
+            `• **Exact Chainage**: **Km ${Number(matchedGate.km || matchedGate.chainage || 0).toFixed(3)}**\n` +
+            `• **Classification**: **${matchedGate.classification || matchedGate.class || 'Special Class'}**\n` +
+            `• **Interlocked / Manned**: **${matchedGate.interlocked ? 'Yes (Interlocked with Signal)' : 'Manned Level Crossing'}**\n` +
+            `• **Section**: **${matchedGate.fromStn || 'KRJN'} – ${matchedGate.toStn || 'SMUN'}**\n` +
+            `• **Road Name**: ${matchedGate.roadName || 'Public Road'}\n` +
+            `• **Assigned Gatemen**:\n${gatemenList}\n` +
+            `• **Rest Giver (RG)**: **${matchedGate.rg || matchedGate.rgDetails || 'Assigned RG'}**`;
+          suggestedAction = { label: 'View LC Gates', tab: 'categories' };
+        } else if (beatNum !== null) {
           const matchedKeyman = keymen.find(k => {
             const num = (k.beatNo || k.id || '').toString().replace(/\D/g, '');
             return parseInt(num, 10) === beatNum;
@@ -258,6 +394,15 @@ export const AdminAIChatModal: React.FC<AdminAIChatModalProps> = ({
             const t = typeof k.toKm === 'number' ? k.toKm : parseFloat(String(k.toKm || 0));
             return targetKm >= f - 0.1 && targetKm <= t + 0.1;
           });
+          const nearbyBridges = bridges.filter(b => {
+            const f = typeof b.fromKm === 'number' ? b.fromKm : typeof b.km === 'number' ? b.km : parseFloat(String(b.fromKm || b.km || 0));
+            const t = typeof b.toKm === 'number' ? b.toKm : typeof b.km === 'number' ? b.km : parseFloat(String(b.toKm || b.km || 0));
+            return (f > 0 && Math.abs(f - targetKm) <= 2.0) || (t > 0 && Math.abs(t - targetKm) <= 2.0);
+          });
+          const nearbyPoints = points.filter(p => {
+            const pk = typeof p.km === 'number' ? p.km : parseFloat(String(p.km || 0));
+            return Math.abs(pk - targetKm) <= 2.0;
+          });
           const nearbyGates = lcs.filter(l => {
             const lk = typeof l.km === 'number' ? l.km : typeof l.chainage === 'number' ? l.chainage : parseFloat(String(l.km || l.chainage || 0));
             return Math.abs(lk - targetKm) <= 3.0;
@@ -278,13 +423,15 @@ export const AdminAIChatModal: React.FC<AdminAIChatModalProps> = ({
             if (code.startsWith('SPN') && targetKm >= r.fromKm - 0.1 && targetKm <= r.toKm + 0.1) nightBeat = code;
           });
 
-          localReply = `📍 **Section Summary at Km ${targetKm.toFixed(3)}**:\n\n` +
+          localReply = `📍 **Complete Asset & Section Summary at Km ${targetKm.toFixed(3)}**:\n\n` +
             `• **Jurisdiction**: Section KRJN–SMUN–SBJN–NSIR–SNL (IMSD SMUN HQ)\n` +
             `• **Keyman Beat**: **${matchedKeyman ? `Beat ${matchedKeyman.beatNo} (${matchedKeyman.name}, 📞 ${matchedKeyman.phone})` : 'Beat 1 (Km 1167.210–1172.000)'}**\n` +
             `• **Security Patrol Beats**: **${dayBeat || 'SPD-01'}** (Day 15:00–23:00) & **${nightBeat || 'SPN-01'}** (Night 23:00–07:00)\n` +
-            (nearbyGates.length > 0 ? `• **Nearby Level Crossings**: ${nearbyGates.map(g => `Gate ${g.gateNo || g.lc_no} at Km ${g.km || g.chainage}`).join(', ')}\n` : '') +
+            (nearbyBridges.length > 0 ? `• **Nearby Bridges**: ${nearbyBridges.map(b => `Br ${b.bridgeNo || b.bridge_no}${b.oldBridgeNo ? ` (Old: ${b.oldBridgeNo})` : ''} at Km ${Number(b.fromKm || b.km || 0).toFixed(3)} [${b.structureType || 'Bridge'}]`).join(', ')}\n` : '') +
+            (nearbyPoints.length > 0 ? `• **Turnouts / P&C**: ${nearbyPoints.map(p => `Pt ${p.pointNo} at ${p.station} (Km ${Number(p.km || 0).toFixed(3)})`).join(', ')}\n` : '') +
+            (nearbyGates.length > 0 ? `• **Level Crossing Gates**: ${nearbyGates.map(g => `Gate ${g.gateNo || g.lc_no} at Km ${Number(g.km || g.chainage || 0).toFixed(3)}`).join(', ')}\n` : '') +
             (kmWorks.length > 0 ? `• **Recent P-Way Work**: ${kmWorks.length} logs recorded (Work: ${kmWorks[0].workDone || kmWorks[0].workCategory})\n` : '') +
-            `• **Incharge**: Shri Vivek Kumar Azad (APM/Civil, 📞 8872671873) & Shri Arjun Kumar (Executive/Civil)`;
+            `• **Incharge Officers**: Shri Vivek Kumar Azad (APM/Civil, 📞 8872671873) & Shri Arjun Kumar (Executive/Civil)`;
           suggestedAction = { label: 'Open Km Quick Finder', tab: 'kmfinder' };
         } else if (qLower.includes('keyman') || qLower.includes('patrol') || qLower.includes('ex-serviceman')) {
           const kmCount = keymen.length || 18;
@@ -317,7 +464,7 @@ export const AdminAIChatModal: React.FC<AdminAIChatModalProps> = ({
           localReply = `📍 **Track Defects & Ultrasonic Testing (USFD)**:\n• Total Active Logs: **${defects.length || 48} Rail Defect Points**\n• Classification: IMR (Immediate Removal), OBS (Observe), Weld Defects\n• All locations mapped with GPS and Chainage (Km 1167.210 to 1249.720).`;
           suggestedAction = { label: 'View Rail Defects', tab: 'defects' };
         } else {
-          localReply = `🔍 **Railway Intelligence Result for "${q}"**:\n• Section: **Km 1167.210 to 1249.720** (IMSD SMUN)\n• Database Status: **82 Staff**, **144 Bridges**, **58 Turnouts**, **42 Curves**, **5 LC Gates**, **10 Store SKUs**, and **48 Track Defects** mapped in real time.\n• Super Admin: Shri Vivek Kumar Azad (APM/Civil) | Executive: Shri Arjun Kumar`;
+          localReply = `🔍 **Railway Intelligence Search Result for "${q}"**:\n• Section Jurisdiction: **Km 1167.210 to 1249.720** (IMSD SMUN HQ)\n• Master Asset Database: **${bridges.length} Bridges**, **${points.length} Turnouts**, **${curves.length} Curves**, **${lcs.length} LC Gates**, **${keymen.length} Keymen Beats**, and **${staff.length} Staff**.\n\n💡 *Tip: Aap directly kisi bhi Bridge (e.g. "Br. 163"), Gate (e.g. "Gate 159"), Point (e.g. "Point 101"), Beat ("Beat 12") ya Km ("Km 1170") ka naam type karke search kar sakte hain!*`;
         }
         replyText = localReply;
         engineName = 'Local Railway Semantic Engine';
