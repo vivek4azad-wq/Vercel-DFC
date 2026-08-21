@@ -206,13 +206,13 @@ export const AdminAIChatModal: React.FC<AdminAIChatModalProps> = ({
           engineName = `Groq ${GROQ_MODELS.find(m => m.id === res.model)?.name || res.model}`;
           latencyMs = res.durationMs;
         } catch (groqErr: any) {
-          console.warn('Groq API Error, attempting fallback:', groqErr);
-          replyText = `⚠️ *(Groq Note: ${groqErr.message || 'API error'}). Falling back to built-in semantic engine:*\n\n`;
+          console.warn('Groq API Error, seamlessly using built-in semantic engine:', groqErr);
+          replyText = '';
         }
       }
 
       // 2. FALLBACK: Built-in high-accuracy local railway engine
-      if (!replyText || replyText.startsWith('⚠️')) {
+      if (!replyText) {
         let localReply = '';
         if (qLower.includes('keyman') || qLower.includes('patrol') || qLower.includes('ex-serviceman')) {
           const kmCount = keymen.length || 18;
@@ -238,10 +238,10 @@ export const AdminAIChatModal: React.FC<AdminAIChatModalProps> = ({
         } else if (qLower.includes('defect') || qLower.includes('fracture') || qLower.includes('weld')) {
           localReply = `📍 **Track Defects & Ultrasonic Testing (USFD)**:\n• Total Active Logs: **${defects.length || 48} Rail Defect Points**\n• Classification: IMR (Immediate Removal), OBS (Observe), Weld Defects\n• All locations mapped with GPS and Chainage (Km 1167.210 to 1249.720).`;
         } else {
-          localReply = `🔍 **Query Result for "${q}"**:\n• Indexed across **82 Staff**, **144 Bridges**, **58 Turnouts**, **42 Curves**, **5 LC Gates**, **10 Store SKUs**, and **48 Track Defects**.\n• System Status: All records synchronized with Cloud database in real time.\n\n💡 *Tip: Click "🔑 Groq API Key" at the top to connect ultra-fast Groq Llama 3.3 for conversational reasoning!*`;
+          localReply = `🔍 **Query Result for "${q}"**:\n• Indexed across **82 Staff**, **144 Bridges**, **58 Turnouts**, **42 Curves**, **5 LC Gates**, **10 Store SKUs**, and **48 Track Defects**.\n• System Status: All records synchronized with Cloud database in real time.`;
         }
-        replyText = replyText ? replyText + localReply : localReply;
-        if (!engineName.includes('Groq')) engineName = 'Local Railway Semantic Engine';
+        replyText = localReply;
+        engineName = 'Local Railway Semantic Engine';
       }
 
       const aiMsg: ChatMessage = {

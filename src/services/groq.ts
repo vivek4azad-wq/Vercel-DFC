@@ -14,40 +14,33 @@ export interface GroqModelOption {
 
 export const GROQ_MODELS: GroqModelOption[] = [
   {
-    id: 'llama-3.1-8b-instant',
-    name: 'Llama 3.1 8B Instant',
-    speed: '🚀 Ultra Fast (~750 t/s)',
-    contextWindow: '128k tokens',
-    description: 'Instant answers for staff phone lookups, chainage checks & quick queries',
+    id: 'openai/gpt-oss-120b',
+    name: 'GPT OSS 120B',
+    speed: '⚡⚡ Ultra Smart (~280 t/s)',
+    contextWindow: '131k tokens',
+    description: '120B Parameter flagship reasoning model with deep railway knowledge',
     recommended: true
   },
   {
-    id: 'llama3-70b-8192',
-    name: 'Llama 3 70B (8k)',
-    speed: '⚡⚡ High Reasoning (~320 t/s)',
-    contextWindow: '8k tokens',
-    description: 'Deep reasoning on track audits, turnout calculations & complex railway rules'
+    id: 'openai/gpt-oss-20b',
+    name: 'GPT OSS 20B',
+    speed: '🚀 Instant (0.07s / ~650 t/s)',
+    contextWindow: '131k tokens',
+    description: 'Lightning-fast instant response for staff & chainage lookups'
   },
   {
-    id: 'llama3-8b-8192',
-    name: 'Llama 3 8B (8k)',
-    speed: '🚀 Instant (~600 t/s)',
-    contextWindow: '8k tokens',
-    description: 'Lightweight & stable standard Llama 3 model'
+    id: 'qwen/qwen3.6-27b',
+    name: 'Qwen 3.6 27B',
+    speed: '⚡ High Precision (~400 t/s)',
+    contextWindow: '131k tokens',
+    description: 'High precision multilingual Hindi & English reasoning'
   },
   {
-    id: 'mixtral-8x7b-32768',
-    name: 'Mixtral 8x7B 32k',
-    speed: '⚡ High Speed (~480 t/s)',
-    contextWindow: '32k tokens',
-    description: 'Multilingual Hindi/English & structured data analysis'
-  },
-  {
-    id: 'gemma2-9b-it',
-    name: 'Gemma 2 9B IT',
-    speed: '⚡ Fast (~450 t/s)',
-    contextWindow: '8k tokens',
-    description: 'Google-developed precision language model on Groq'
+    id: 'groq/compound',
+    name: 'Groq Compound',
+    speed: '⚡ High Speed',
+    contextWindow: '131k tokens',
+    description: 'Groq native multi-step reasoning agent'
   }
 ];
 
@@ -69,9 +62,8 @@ export const setGroqApiKey = (key: string): void => {
 
 export const getGroqModel = (): string => {
   const saved = localStorage.getItem(GROQ_MODEL_KEY);
-  // Default to reliable llama-3.1-8b-instant if not set or if set to deprecated 3.3
-  if (!saved || saved === 'llama-3.3-70b-versatile') {
-    return 'llama-3.1-8b-instant';
+  if (!saved || saved.includes('llama')) {
+    return 'openai/gpt-oss-120b';
   }
   return saved;
 };
@@ -103,7 +95,7 @@ export const testGroqConnection = async (testKey?: string, modelOverride?: strin
           { role: 'system', content: 'Respond with "P-Way OK" and nothing else.' },
           { role: 'user', content: 'Ping' }
         ],
-        max_tokens: 10,
+        max_tokens: 15,
         temperature: 0.1
       })
     });
@@ -112,10 +104,10 @@ export const testGroqConnection = async (testKey?: string, modelOverride?: strin
       const err = await res.json().catch(() => ({}));
       const errMsg = err?.error?.message || `HTTP ${res.status}: Connection failed`;
 
-      // Fallback: If model doesn't exist, try llama-3.1-8b-instant
-      if (model !== 'llama-3.1-8b-instant' && errMsg.toLowerCase().includes('does not exist')) {
-        setGroqModel('llama-3.1-8b-instant');
-        return testGroqConnection(key, 'llama-3.1-8b-instant');
+      // Fallback to 20B model if needed
+      if (model !== 'openai/gpt-oss-20b' && errMsg.toLowerCase().includes('does not exist')) {
+        setGroqModel('openai/gpt-oss-20b');
+        return testGroqConnection(key, 'openai/gpt-oss-20b');
       }
 
       return {
@@ -156,12 +148,12 @@ export const queryGroqChat = async (
   }
 
   let model = customModel || getGroqModel();
-  if (model === 'llama-3.3-70b-versatile') model = 'llama-3.1-8b-instant';
+  if (model.includes('llama')) model = 'openai/gpt-oss-120b';
 
   const startTime = performance.now();
 
   const systemPrompt = `You are the Official DFCCIL Railway Senior Section Engineer & P-Way Intelligence AI Assistant for Section KRJN–SMUN–SBJN–NSIR–SNL (Km 1167.210 to 1249.720, Total 88.679 Km under IMSD SMUN HQ).
-You are powered by Groq Ultra-Fast LPUs.
+You are answering Shri Vivek Kumar Azad (APM / Civil / SMUN) and railway staff.
 
 Here is the LIVE, REAL-TIME RAILWAY ERP DATABASE CONTEXT:
 =========================================================
@@ -170,9 +162,9 @@ ${contextSummary}
 
 RESPONSE GUIDELINES:
 1. Answer accurately, professionally, and concisely using the real live railway data above.
-2. Format your response with clear markdown headers, bullet points, and appropriate emojis.
-3. If asking for staff or beat lookups, provide exact names, mobile numbers, chainages (Km), and AWPO IDs when available.
-4. Support both English and Hinglish/Hindi naturally.
+2. Format your response with clear markdown headers, tables, bullet points, and appropriate railway emojis.
+3. If asking for staff or beat lookups, provide exact names, mobile numbers, chainages (Km), and AWPO IDs from the database context.
+4. Support both English and Hinglish/Hindi naturally according to the user's language.
 5. Emphasize track safety, railway guidelines (DFCCIL / IRPWM standards), and audit compliance where relevant.`;
 
   const messages = [
@@ -194,13 +186,13 @@ RESPONSE GUIDELINES:
     })
   });
 
-  // Automatic Fallback to llama-3.1-8b-instant if model not found
+  // Fallback to 20B if 120B is overloaded or unavailable
   if (!response.ok) {
     const errJson = await response.json().catch(() => ({}));
     const errMsg = errJson?.error?.message || '';
-    if (model !== 'llama-3.1-8b-instant' && errMsg.toLowerCase().includes('does not exist')) {
-      model = 'llama-3.1-8b-instant';
-      setGroqModel('llama-3.1-8b-instant');
+    if (model !== 'openai/gpt-oss-20b' && (errMsg.includes('does not exist') || errMsg.includes('overloaded') || response.status === 429)) {
+      model = 'openai/gpt-oss-20b';
+      setGroqModel('openai/gpt-oss-20b');
       response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
