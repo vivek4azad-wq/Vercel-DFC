@@ -4,3 +4,12 @@ dist
 .env.local
 .vercel
 .env*
+.gradle/
+build/
+android/.gradle/
+android/app/build/
+android/build/
+android/captures/
+android/.idea/
+android/*.iml
+android/app/*.iml

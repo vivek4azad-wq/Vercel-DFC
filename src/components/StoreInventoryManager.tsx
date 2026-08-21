@@ -340,11 +340,15 @@ export const StoreInventoryManager: React.FC = () => {
   }, [selectedItemForQR]);
 
   const lowStockItems = useMemo(() => {
-    return items.filter(i => i.currentStock <= i.minBufferThreshold);
+    return items.filter(i => Number(i.currentStock || 0) <= (i.minBufferThreshold || 5) && Number(i.currentStock || 0) >= 0);
+  }, [items]);
+
+  const negativeStockItems = useMemo(() => {
+    return items.filter(i => Number(i.currentStock || 0) < 0);
   }, [items]);
 
   const totalAssetValue = useMemo(() => {
-    return items.reduce((acc, i) => acc + (i.currentStock * (i.unitRate || 0)), 0);
+    return items.reduce((acc, i) => acc + (Number(i.currentStock || 0) * (i.unitRate || 0)), 0);
   }, [items]);
 
   const totalInwardMonth = useMemo(() => {
@@ -445,21 +449,9 @@ export const StoreInventoryManager: React.FC = () => {
     loadStoreData();
   };
 
-  // Handle Delete Item (Super Admin APM Vivek Kumar Azad Only)
+  // Handle Delete Item (Permanently Disabled as per Railway Store Audit Compliance)
   const handleDeleteItem = async (item: StoreItemRecord) => {
-    if (!isSuperAdmin) {
-      alert('🔒 Permission Denied: Material Item Delete karne ka adhikar kewal Super Admin (Shri Vivek Kumar Azad, APM/Civil) ke paas hai.');
-      return;
-    }
-    if (!window.confirm(`⚠️ DELETE MATERIAL ITEM:\n\nAre you sure you want to permanently delete "${item.name}" (${item.itemCode}) from Store Inventory?`)) {
-      return;
-    }
-    try {
-      await db.deleteDocument('store_items', item.id);
-      loadStoreData();
-    } catch (err: any) {
-      alert(`Delete failed: ${err.message}`);
-    }
+    alert('🔒 Item Deletion Disabled: Store materials ko permanent delete karne ki suvidha auditing aur ledger transaction history integrity banaye rakhne ke liye disable kar di gayi hai.');
   };
 
   // Handle Save Edit Item
@@ -1208,6 +1200,40 @@ export const StoreInventoryManager: React.FC = () => {
         </div>
       </div>
 
+      {/* Negative Stock Error Alert Banner */}
+      {negativeStockItems.length > 0 && (
+        <div className="p-4 bg-rose-50 dark:bg-rose-950/80 border-2 border-rose-500 rounded-2xl flex items-start gap-3 text-rose-900 dark:text-rose-200 shadow-sm animate-pulse">
+          <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+          <div className="space-y-1.5 text-xs flex-1">
+            <div className="font-black text-sm text-rose-700 dark:text-rose-300 flex items-center gap-2">
+              <span>⚠️ ATTENTION: {negativeStockItems.length} Material(s) have Negative Stock Balance!</span>
+              <span className="text-[10px] bg-rose-600 text-white px-2 py-0.5 rounded-full font-bold">Ledger Data Error</span>
+            </div>
+            <p className="font-medium text-slate-700 dark:text-slate-300">
+              In items par extra outward issue entry ya galat quantity log ho gayi hai. Audit ke liye item par click karke Tally Book open karein:
+            </p>
+            <div className="flex flex-wrap gap-2 pt-1">
+              {negativeStockItems.map(neg => (
+                <button
+                  key={neg.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedItemForTally(neg);
+                    setActiveSubTab('tally_book');
+                  }}
+                  className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-rose-300 dark:border-rose-700 rounded-xl font-mono font-bold text-rose-700 dark:text-rose-300 hover:bg-rose-100 flex items-center gap-1.5 shadow-sm transition"
+                  title="Open Tally Book for this item to audit voucher transactions"
+                >
+                  <span>{neg.priceListCode || neg.itemCode}</span>
+                  <span className="font-normal text-slate-600 dark:text-slate-400">({neg.name})</span>
+                  <span className="text-white bg-red-600 px-1.5 py-0.2 rounded font-black">[{neg.currentStock} {neg.unit}]</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Category Pills Bar (Short Clean Names, No Delete Option) */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-1 shrink-0">Categories:</span>
@@ -1280,13 +1306,14 @@ export const StoreInventoryManager: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
                   {(activeSubTab === 'low_stock' ? lowStockItems : filteredItems).map(item => {
-                    const safeStock = Math.max(0, Number(item.currentStock || 0));
-                    const isLow = safeStock <= (item.minBufferThreshold || 5);
+                    const actualStock = Number(item.currentStock || 0);
+                    const isNegative = actualStock < 0;
+                    const isLow = !isNegative && actualStock <= (item.minBufferThreshold || 5);
                     return (
                       <tr
                         key={item.id}
                         className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition ${
-                          isLow ? 'bg-red-50/40 dark:bg-red-950/30' : ''
+                          isNegative ? 'bg-rose-50/70 dark:bg-rose-950/40 border-l-4 border-rose-500' : isLow ? 'bg-amber-50/40 dark:bg-amber-950/30' : ''
                         }`}
                       >
                       <td className="p-3.5 font-mono font-bold text-blue-700 dark:text-cyan-400">
@@ -1345,15 +1372,20 @@ export const StoreInventoryManager: React.FC = () => {
                         </button>
                       </td>
                       <td className="p-3.5">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <span className={`text-sm font-black font-mono ${
-                            isLow ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-white'
+                            isNegative ? 'text-rose-700 dark:text-rose-400' : isLow ? 'text-amber-600 dark:text-amber-400' : 'text-slate-900 dark:text-white'
                           }`}>
-                            {safeStock.toLocaleString()}
+                            {actualStock.toLocaleString()}
                           </span>
                           <span className="text-[10px] text-slate-500 font-bold">{item.unit}</span>
-                          {isLow && (
-                            <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-red-100 text-red-800 border border-red-300 animate-pulse">
+                          {isNegative && (
+                            <span className="px-2 py-0.5 rounded text-[9px] font-black bg-rose-600 text-white border border-rose-700 shadow-sm flex items-center gap-1 animate-pulse" title="Negative stock error: ledger mismatch or wrong outward voucher">
+                              ⚠️ NEGATIVE ERROR ({actualStock})
+                            </span>
+                          )}
+                          {isLow && !isNegative && (
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-amber-100 text-amber-800 border border-amber-300">
                               LOW
                             </span>
                           )}
@@ -1581,17 +1613,6 @@ export const StoreInventoryManager: React.FC = () => {
                   <ArrowUpRight className="w-3.5 h-3.5" />
                   <span>- Issue Voucher</span>
                 </button>
-
-                {isSuperAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteItem(selectedItemForTally)}
-                    className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/60 rounded-xl border border-red-200 dark:border-red-800 transition"
-                    title="Delete Material Item Record (Super Admin Only)"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                )}
               </div>
             </div>
           </div>
@@ -1694,8 +1715,19 @@ export const StoreInventoryManager: React.FC = () => {
                       <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono text-amber-600 font-bold">
                         {tx.type === 'OUTWARD' ? Number(tx.quantity).toFixed(2) : '0.00'}
                       </td>
-                      <td className="p-3 border border-slate-300 dark:border-slate-700 text-red-600 font-black font-mono bg-blue-50/30">
-                        {Math.max(0, Number(tx.balanceQty ?? selectedItemForTally.currentStock)).toFixed(2)}
+                      <td className={`p-3 border border-slate-300 dark:border-slate-700 font-mono text-center ${
+                        Number(tx.balanceQty ?? selectedItemForTally.currentStock) < 0
+                          ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 font-black'
+                          : 'text-slate-900 dark:text-white font-black bg-blue-50/30'
+                      }`}>
+                        <div className="flex flex-col items-center">
+                          <span>{Number(tx.balanceQty ?? selectedItemForTally.currentStock).toFixed(2)}</span>
+                          {Number(tx.balanceQty ?? selectedItemForTally.currentStock) < 0 && (
+                            <span className="text-[9px] font-bold text-white bg-rose-600 px-1 py-0.2 rounded border border-rose-700 shadow-sm mt-0.5 animate-pulse">
+                              ⚠️ NEGATIVE ERROR
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="p-2 border border-slate-300 dark:border-slate-700">
                         <div className="flex items-center justify-center gap-1.5">
@@ -3209,6 +3241,20 @@ export const StoreInventoryManager: React.FC = () => {
             </div>
 
             <form onSubmit={handleSaveEditItem} className="space-y-3.5 text-xs font-semibold">
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
+                  <span>SAP Material Code / Price List Code:</span>
+                  <span className="text-[10px] text-blue-600 dark:text-cyan-400 bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-800">Auto-Fetched (Read-Only)</span>
+                </label>
+                <input
+                  type="text"
+                  readOnly
+                  disabled
+                  value={editingItem.priceListCode || editingItem.itemCode || 'Auto-Fetched Code'}
+                  className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-400 font-mono font-bold cursor-not-allowed"
+                />
+              </div>
+
               <div>
                 <label className="block text-slate-700 dark:text-slate-300 mb-1">
                   Item Description / Name:
