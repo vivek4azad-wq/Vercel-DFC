@@ -231,44 +231,74 @@ export const AdminAIChatModal: React.FC<AdminAIChatModalProps> = ({
         let localReply = '';
         
         // ----------------------------------------------------
-        // A. Bridge Number Lookups (e.g. "br. 163", "bridge 163", "br 148", "1206/1")
+        // A. Station Detection (e.g. "GVGN", "SMUN", "SBJN", "NSIR", "KRJN", "SNL", "CHAN")
+        // ----------------------------------------------------
+        const stationMatch = q.match(/\b(GVGN|SMUN|SBJN|NSIR|KRJN|SNL|CHAN|KNNN)\b/i);
+        const targetStation = stationMatch ? stationMatch[1].toUpperCase() : null;
+
+        // ----------------------------------------------------
+        // B. Points & Crossings Lookups (e.g. "point 101", "turnout 205a", "205a", "205 A", "pt 201")
+        // ----------------------------------------------------
+        const ptMatch = q.match(/\b(?:point|pt|turnout|p&c|xing)\s*(?:no\.?|number)?\s*([a-zA-Z0-9\/\-\.]+)\b/i)
+          || q.match(/\b([a-zA-Z0-9\/\-\.]+)\s*(?:no\.?)?\s*(?:point|turnout)\b/i)
+          || q.match(/\b([0-9]{3}[a-zA-Z]?)\b/i); // Matches 205a, 201, 246b, 254a, etc.
+        const ptQueryTerm = ptMatch ? ptMatch[1].trim().toLowerCase() : null;
+
+        // ----------------------------------------------------
+        // C. Bridge Number Lookups (e.g. "br. 163", "bridge 163", "br 148", "1206/1")
         // ----------------------------------------------------
         const bridgeMatch = q.match(/\b(?:br\.?|bridge|bridg|brg|pool)\s*(?:no\.?|number)?\s*([a-zA-Z0-9\/\-\.]+)\b/i) || q.match(/\b([a-zA-Z0-9\/\-\.]+)\s*(?:no\.?)?\s*(?:br\.?|bridge|bridg)\b/i);
         const bridgeQueryTerm = bridgeMatch ? bridgeMatch[1].trim().toLowerCase() : null;
 
         // ----------------------------------------------------
-        // B. Points & Crossings Lookups (e.g. "point 101", "turnout 101", "pt 201")
-        // ----------------------------------------------------
-        const ptMatch = q.match(/\b(?:point|pt|turnout|p&c|xing)\s*(?:no\.?|number)?\s*([a-zA-Z0-9\/\-\.]+)\b/i) || q.match(/\b([a-zA-Z0-9\/\-\.]+)\s*(?:no\.?)?\s*(?:point|turnout)\b/i);
-        const ptQueryTerm = ptMatch ? ptMatch[1].trim().toLowerCase() : null;
-
-        // ----------------------------------------------------
-        // C. Curve Lookups (e.g. "curve 14", "curve no. 5")
+        // D. Curve Lookups (e.g. "curve 14", "curve no. 5")
         // ----------------------------------------------------
         const curveMatch = q.match(/\b(?:curve|curv|mor)\s*(?:no\.?|number)?\s*(\d+[a-zA-Z]?)\b/i) || q.match(/\b(\d+[a-zA-Z]?)\s*(?:no\.?)?\s*curve\b/i);
         const curveQueryTerm = curveMatch ? curveMatch[1].trim().toLowerCase() : null;
 
         // ----------------------------------------------------
-        // D. Level Crossing Gate Lookups (e.g. "gate 163", "lc 163", "gate 159", "163 c")
+        // E. Level Crossing Gate Lookups (e.g. "gate 163", "lc 163", "gate 159", "163 c")
         // ----------------------------------------------------
         const gateMatch = q.match(/\b(?:gate|lc|crossing|fatak)\s*(?:no\.?|number)?\s*([a-zA-Z0-9\/\-\.]+)\b/i) || q.match(/\b([a-zA-Z0-9\/\-\.]+)\s*(?:no\.?)?\s*(?:gate|lc)\b/i);
         const gateQueryTerm = gateMatch ? gateMatch[1].trim().toLowerCase() : null;
 
         // ----------------------------------------------------
-        // E. Beat Number Lookups (e.g. "beat no 12 me kaun h", "beat 6")
+        // F. Beat Number Lookups (e.g. "beat no 12 me kaun h", "beat 6")
         // ----------------------------------------------------
         const beatMatch = q.match(/\b(?:beat|bead|keyman)\s*(?:no\.?|number)?\s*(\d+)\b/i) || q.match(/\b(\d+)\s*(?:no\.?|number)?\s*beat\b/i);
         const beatNum = beatMatch ? parseInt(beatMatch[1], 10) : null;
 
         // ----------------------------------------------------
-        // F. Km Chainage Lookups (e.g. "1170 pr ki summery", "km 1208", "1232.095")
+        // G. Km Chainage Lookups (e.g. "1170 pr ki summery", "km 1208", "1232.095")
         // ----------------------------------------------------
         const kmMatch = q.match(/\b(1[1-2]\d{2}(?:\.\d+)?)\b/) || q.match(/\bkm\s*(\d+(?:\.\d+)?)\b/i);
         const targetKm = kmMatch ? parseFloat(kmMatch[1]) : null;
 
-        // 1. Check Bridge Match
+        // 1. Check Point/Turnout Match (handles specific station like GVGN + 205a or general 205a)
+        let matchedPoint: PointCrossingRecord | undefined;
+        let multipleMatchingPoints: PointCrossingRecord[] = [];
+        if (ptQueryTerm) {
+          const matchingPts = points.filter(p => {
+            const pNo = (p.pointNo || p.point_no || '').toLowerCase();
+            const id = (p.id || '').toLowerCase();
+            const cleanQuery = ptQueryTerm.replace(/\s+/g, '');
+            const cleanPNo = pNo.replace(/\s+/g, '');
+            return cleanPNo === cleanQuery || pNo === ptQueryTerm || pNo.includes(ptQueryTerm) || id.includes(ptQueryTerm);
+          });
+
+          if (targetStation) {
+            matchedPoint = matchingPts.find(p => (p.station || '').toUpperCase().includes(targetStation)) || matchingPts[0];
+          } else if (matchingPts.length === 1) {
+            matchedPoint = matchingPts[0];
+          } else if (matchingPts.length > 1) {
+            matchedPoint = matchingPts[0];
+            multipleMatchingPoints = matchingPts;
+          }
+        }
+
+        // 2. Check Bridge Match
         let matchedBridge: BridgeRecord | undefined;
-        if (bridgeQueryTerm) {
+        if (bridgeQueryTerm && !matchedPoint) {
           matchedBridge = bridges.find(b => {
             const bNo = (b.bridgeNo || b.bridge_no || '').toLowerCase();
             const oldNo = (b.oldBridgeNo || b.old_no || '').toLowerCase();
@@ -278,19 +308,9 @@ export const AdminAIChatModal: React.FC<AdminAIChatModalProps> = ({
           });
         }
 
-        // 2. Check Point/Turnout Match
-        let matchedPoint: PointCrossingRecord | undefined;
-        if (ptQueryTerm) {
-          matchedPoint = points.find(p => {
-            const pNo = (p.pointNo || p.point_no || '').toLowerCase();
-            const id = (p.id || '').toLowerCase();
-            return pNo === ptQueryTerm || pNo.includes(ptQueryTerm) || id.includes(ptQueryTerm);
-          });
-        }
-
         // 3. Check Curve Match
         let matchedCurve: CurveRecord | undefined;
-        if (curveQueryTerm) {
+        if (curveQueryTerm && !matchedPoint && !matchedBridge) {
           matchedCurve = curves.find(c => {
             const cNo = (c.curveNo || c.curve_no || '').toString().toLowerCase();
             const id = (c.id || '').toLowerCase();
@@ -300,7 +320,7 @@ export const AdminAIChatModal: React.FC<AdminAIChatModalProps> = ({
 
         // 4. Check LC Gate Match
         let matchedGate: LevelCrossingRecord | undefined;
-        if (gateQueryTerm) {
+        if (gateQueryTerm && !matchedPoint && !matchedBridge && !matchedCurve) {
           matchedGate = lcs.find(l => {
             const gNo = (l.gateNo || l.lc_no || '').toLowerCase();
             const id = (l.id || '').toLowerCase();
@@ -308,7 +328,23 @@ export const AdminAIChatModal: React.FC<AdminAIChatModalProps> = ({
           });
         }
 
-        if (matchedBridge) {
+        if (matchedPoint) {
+          const ptKm = Number(matchedPoint.km || matchedPoint.srjChainage || 0).toFixed(3);
+          localReply = `🔀 **Turnout (P&C) Record: Point No. ${matchedPoint.pointNo} (${matchedPoint.station})**\n\n` +
+            `• **Station / Yard**: **${matchedPoint.station} Yard (${matchedPoint.trackType || matchedPoint.line || 'Line'})**\n` +
+            `• **Exact SRJ Chainage**: **Km ${ptKm}**\n` +
+            `• **Turnout Ratio**: **${matchedPoint.turnoutRatio || '1 in 12'} (${matchedPoint.crossingAngle || '1:12 Curved CMS'})**\n` +
+            `• **Rail Section**: **${matchedPoint.railSection || matchedPoint.railType || '60kg 90UTS'}**\n` +
+            `• **Hand & Operation**: **${matchedPoint.hand || matchedPoint.lh_rh || 'RH'} Handed** • ${matchedPoint.operation || 'Motor Operated (Point Machine)'}\n` +
+            `• **Sleeper Type**: **${matchedPoint.sleeperType || matchedPoint.sleepersType || 'PSC Turnout Sleepers (60kg)'}**\n` +
+            `• **Switch Length**: **${matchedPoint.switchLengthMeters || 10.125} Meters**\n` +
+            `• **Permissible Speed**: **${matchedPoint.speedLimitKmph || 30} Kmph**\n` +
+            `• **Condition Rating**: **${matchedPoint.condition || 'GOOD'}**\n` +
+            `• **Remarks**: ${matchedPoint.remarks || `Point ${matchedPoint.pointNo} at ${matchedPoint.station}`}\n` +
+            (multipleMatchingPoints.length > 1 ? `\n💡 *Note: Section me Point ${ptQueryTerm?.toUpperCase()} anya stations par bhi sthit hai:*\n` + multipleMatchingPoints.map(p => `• **${p.station}**: Pt ${p.pointNo} at **Km ${Number(p.km || p.srjChainage || 0).toFixed(3)}** (${p.trackType || p.line})`).join('\n') : '') +
+            `\n• **Incharge Officers**: Shri Vivek Kumar Azad (APM/Civil) & Shri Arjun Kumar (Executive/Civil)`;
+          suggestedAction = { label: 'View Points & Crossings', tab: 'points_crossings' };
+        } else if (matchedBridge) {
           const fromK = typeof matchedBridge.fromKm === 'number' ? matchedBridge.fromKm : parseFloat(String(matchedBridge.fromKm || matchedBridge.km || 0));
           const toK = typeof matchedBridge.toKm === 'number' ? matchedBridge.toKm : parseFloat(String(matchedBridge.toKm || matchedBridge.km || 0));
           const kmText = fromK > 0 ? (fromK === toK || toK <= 0 ? `Km ${fromK.toFixed(3)}` : `Km ${fromK.toFixed(3)} to ${toK.toFixed(3)}`) : `Km ${(matchedBridge.km || 0).toFixed(3)}`;
@@ -326,16 +362,6 @@ export const AdminAIChatModal: React.FC<AdminAIChatModalProps> = ({
             (matchedBridge.latitude && matchedBridge.longitude ? `• **GPS Coordinates**: 📍 [${matchedBridge.latitude.toFixed(5)}, ${matchedBridge.longitude.toFixed(5)}](https://www.google.com/maps?q=${matchedBridge.latitude},${matchedBridge.longitude})\n` : '') +
             `• **Jurisdiction**: IMSD SMUN Unit (APM Sh. Vivek Kumar Azad & Executive Sh. Arjun Kumar)`;
           suggestedAction = { label: 'Open Bridges Catalog', tab: 'bridges' };
-        } else if (matchedPoint) {
-          localReply = `🔀 **Turnout (P&C) Information: Point No. ${matchedPoint.pointNo}**\n\n` +
-            `• **Station / Yard**: **${matchedPoint.station || 'SMUN / SBJN Yard'}**\n` +
-            `• **Turnout Ratio**: **${matchedPoint.turnoutRatio || '1 in 12'} (${matchedPoint.railSection || '60 Kg'})**\n` +
-            `• **SRJ / Point Chainage**: **Km ${(matchedPoint.km || matchedPoint.srjChainage || 0).toFixed(3)}**\n` +
-            `• **Hand**: **${matchedPoint.hand || matchedPoint.lh_rh || 'LH'} Handed**\n` +
-            `• **Sleeper Type**: **${matchedPoint.sleeperType || 'PSC Turnout Sleepers'}**\n` +
-            `• **Switch Length**: **${matchedPoint.switchLengthMeters || 10.125} Meters**\n` +
-            `• **Condition Rating**: **${matchedPoint.condition || 'GOOD'}**`;
-          suggestedAction = { label: 'View Points & Crossings', tab: 'points_crossings' };
         } else if (matchedCurve) {
           localReply = `🔄 **Curve Information: Curve No. ${matchedCurve.curveNo}**\n\n` +
             `• **Chainage Range**: **Km ${(matchedCurve.fromKm || 0).toFixed(3)} to ${(matchedCurve.toKm || 0).toFixed(3)}**\n` +
