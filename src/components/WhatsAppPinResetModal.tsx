@@ -196,7 +196,7 @@ export const WhatsAppPinResetModal: React.FC<WhatsAppPinResetModalProps> = ({
                   <input
                     type="text"
                     required
-                    placeholder="e.g. 8872671873 or vkazad@dfcc.co.in"
+                    placeholder="Enter Registered Mobile No., Emp ID, or Email"
                     value={identifierInput}
                     onChange={e => setIdentifierInput(e.target.value)}
                     className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
