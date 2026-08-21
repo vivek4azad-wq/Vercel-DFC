@@ -133,6 +133,15 @@ export const StoreInventoryManager: React.FC = () => {
   const [editBufferTargetItem, setEditBufferTargetItem] = useState<StoreItemRecord | null>(null);
   const [newBufferValue, setNewBufferValue] = useState<number>(5);
 
+  // Negative Stock Emergency Popup State
+  const [negativeStockAlert, setNegativeStockAlert] = useState<{
+    itemName: string;
+    itemCode: string;
+    attemptedQty: number;
+    currentStock: number;
+    unit: string;
+  } | null>(null);
+
   const [selectedItemForTally, setSelectedItemForTally] = useState<StoreItemRecord | null>(null);
   const [selectedItemForQR, setSelectedItemForQR] = useState<StoreItemRecord | null>(null);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
@@ -525,7 +534,13 @@ export const StoreInventoryManager: React.FC = () => {
 
     const qty = Math.max(0, Number(txnFormData.quantity));
     if (txnType === 'OUTWARD' && (targetItem.currentStock < qty || qty <= 0)) {
-      alert(`⚠️ Insufficient Stock! Current Available: ${targetItem.currentStock} ${targetItem.unit}. Negative (-ve) stock is strictly not allowed.`);
+      setNegativeStockAlert({
+        itemName: targetItem.name,
+        itemCode: String(targetItem.priceListCode || targetItem.itemCode || 'N/A'),
+        attemptedQty: qty,
+        currentStock: targetItem.currentStock,
+        unit: targetItem.unit
+      });
       return;
     }
 
@@ -2747,6 +2762,101 @@ export const StoreInventoryManager: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------------------- */}
+      {/* 10. CRITICAL NEGATIVE STOCK EMERGENCY POPUP (Sectional, Store, APM Alert) */}
+      {/* ------------------------------------------------------------------------- */}
+      {negativeStockAlert && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border-2 border-red-600 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden text-slate-900 dark:text-white p-6 space-y-4 animate-scaleUp">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-3 border-b border-red-100 dark:border-red-950/60 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-2xl bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400 animate-pulse shrink-0">
+                  <AlertTriangle className="w-7 h-7" />
+                </div>
+                <div>
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-red-600 text-white shadow-sm">
+                    🚨 URGENT INVENTORY ALERT
+                  </span>
+                  <h3 className="text-base font-black text-red-900 dark:text-red-300 mt-1 leading-tight">
+                    Negative Stock Deficit Detected!
+                  </h3>
+                </div>
+              </div>
+              <button
+                onClick={() => setNegativeStockAlert(null)}
+                className="p-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Material & Deficit Details */}
+            <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/80 rounded-2xl p-4 space-y-2.5 text-xs">
+              <div className="flex justify-between items-center pb-2 border-b border-red-200 dark:border-red-900">
+                <span className="font-bold text-slate-600 dark:text-slate-400">Material Item:</span>
+                <span className="font-black text-slate-900 dark:text-white">{negativeStockAlert.itemName}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-slate-600 dark:text-slate-400">SAP / Price List Code:</span>
+                <span className="font-mono font-bold text-blue-700 dark:text-cyan-400">{negativeStockAlert.itemCode}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-slate-600 dark:text-slate-400">Current Available Stock:</span>
+                <span className="font-mono font-black text-emerald-700 dark:text-emerald-400">
+                  {negativeStockAlert.currentStock} {negativeStockAlert.unit}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-red-700 dark:text-red-300">
+                <span className="font-black">Attempted Issue Quantity:</span>
+                <span className="font-mono font-black text-sm">
+                  {negativeStockAlert.attemptedQty} {negativeStockAlert.unit}
+                </span>
+              </div>
+              <div className="p-2 bg-white dark:bg-slate-900 rounded-xl border border-red-300 dark:border-red-900 text-red-800 dark:text-red-300 font-black text-center text-xs">
+                ⚠️ Deficit Balance: -{(negativeStockAlert.attemptedQty - negativeStockAlert.currentStock).toFixed(2)} {negativeStockAlert.unit} (Disallowed)
+              </div>
+            </div>
+
+            {/* Automated Routing Notice to 3 Entities */}
+            <div className="space-y-1.5 text-xs bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-slate-200 dark:border-slate-700">
+              <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider block">
+                📢 Automated Notification Dispatched To:
+              </span>
+              <ul className="space-y-1 text-[11px] font-bold text-slate-800 dark:text-slate-200">
+                <li className="flex items-center gap-1.5">
+                  <span className="text-emerald-600">✓</span>
+                  <span><strong>Super Admin (Shri Vivek Kumar Azad, APM/Civil)</strong> — Master Control Oversight</span>
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <span className="text-blue-600">✓</span>
+                  <span><strong>Sectional Executive (Sh. Arjun Kumar / Sh. Gaya Prashad)</strong> — Field Verification</span>
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <span className="text-purple-600">✓</span>
+                  <span><strong>Store Keeper (Depot Incharge)</strong> — Inward Receipt Requisition Required</span>
+                </li>
+              </ul>
+            </div>
+
+            <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+              Negative (-ve) balances are strictly prohibited in the DFCCIL P-Way IMSD-SMUN store ledger. Please record an inward receipt voucher or correct the requisition quantity before proceeding.
+            </p>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setNegativeStockAlert(null)}
+                className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-black text-xs shadow-lg transition active:scale-95 text-center"
+              >
+                Understood &amp; Correct Stock Entry
+              </button>
+            </div>
           </div>
         </div>
       )}
