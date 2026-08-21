@@ -43,7 +43,11 @@ import {
   BookOpen,
   Info,
   ChevronRight,
-  QrCode
+  QrCode,
+  Paperclip,
+  FileText,
+  Eye,
+  ZoomIn
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { StoreItemPublicQRView } from './StoreItemPublicQRView.tsx';
@@ -51,6 +55,7 @@ import { SAP_MATERIALS, type SapMaterial } from '../data/sapMaterialMaster.ts';
 import { SapMaterialLookup } from './SapMaterialLookup.tsx';
 import { ImsdSourceTallyBook } from './ImsdSourceTallyBook.tsx';
 import { IMSD_TALLY_GZIP_BASE64 } from '../data/imsdTallyLedgerCompressed.ts';
+import { compressFileToTargetRange, type CompressionResult } from '../utils/fileCompression.ts';
 import type { StoreItemRecord, StoreTransactionRecord, OfficerStaffRecord } from '../types/index.ts';
 
 const decodeTallyData = async (): Promise<{ items: any[]; transactions: any[] }> => {
@@ -147,6 +152,12 @@ export const StoreInventoryManager: React.FC = () => {
   const [selectedItemForQR, setSelectedItemForQR] = useState<StoreItemRecord | null>(null);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
   const [isPreviewingLiveScan, setIsPreviewingLiveScan] = useState(false);
+
+  // Reference Document Upload & Preview State (Gatepass, Voucher, Receipt)
+  const [attachedDoc, setAttachedDoc] = useState<CompressionResult | null>(null);
+  const [isCompressingDoc, setIsCompressingDoc] = useState(false);
+  const [docCompressionError, setDocCompressionError] = useState<string | null>(null);
+  const [viewingDocModal, setViewingDocModal] = useState<{ url: string; name: string; type?: string } | null>(null);
 
   const [txnType, setTxnType] = useState<'INWARD' | 'OUTWARD' | 'TRANSFER'>('OUTWARD');
   const [selectedItemForTxn, setSelectedItemForTxn] = useState<StoreItemRecord | null>(null);
@@ -676,6 +687,9 @@ export const StoreInventoryManager: React.FC = () => {
       purposeOrSection: txnFormData.purposeOrSection || 'IMSD/USED',
       authorizedBy: currentUser?.name || 'Store Incharge',
       remarks: txnFormData.remarks,
+      referenceDocUrl: attachedDoc ? attachedDoc.dataUrl : undefined,
+      referenceDocName: attachedDoc ? attachedDoc.fileName : undefined,
+      referenceDocSizeKb: attachedDoc ? attachedDoc.compressedSizeKb : undefined,
       receiptQty: txnType === 'INWARD' ? qty : 0,
       transferQty: txnType === 'TRANSFER' ? qty : 0,
       issueQty: txnType === 'OUTWARD' ? qty : 0,
@@ -697,6 +711,8 @@ export const StoreInventoryManager: React.FC = () => {
       db.updateDocument('store_items', targetItem.id, updatedItem)
     ]);
 
+    setAttachedDoc(null);
+    setDocCompressionError(null);
     setIsTxnModalOpen(false);
     setIsOnTheFlyMaterialMode(false);
     setOnTheFlyMaterial({ name: '', itemCode: '', unit: 'Nos', category: 'T&P', priceListCode: '49', tallyCodeNo: '1', accountsFileNo: '3195' });
@@ -1392,55 +1408,12 @@ export const StoreInventoryManager: React.FC = () => {
                           </button>
 
                           <button
-                            onClick={() => setEditingItem(item)}
-                            className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900 text-indigo-800 dark:text-indigo-300 rounded-lg text-[11px] font-bold transition border border-indigo-200 dark:border-indigo-800 flex items-center gap-1 shadow-sm"
-                            title="Edit Item Master Details (Name, Stock, Buffer, Rate, Location, Category)"
-                          >
-                            <Edit2 className="w-3 h-3" />
-                            <span>Edit</span>
-                          </button>
-
-                          <button
                             onClick={() => setSelectedItemForQR(item)}
                             className="px-2 py-1 bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-950/60 dark:hover:bg-cyan-900 text-cyan-800 dark:text-cyan-300 rounded-lg text-[11px] font-bold transition border border-cyan-200 dark:border-cyan-800 flex items-center gap-1 shadow-sm"
                             title="Generate & Print Dynamic QR Code for Bin Label"
                           >
                             <QrCode className="w-3.5 h-3.5" />
                             <span>QR</span>
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setSelectedItemForTxn(item);
-                              setTxnType('INWARD');
-                              setTxnFormData(prev => ({ ...prev, itemId: item.id, quantity: 1, purposeOrSection: 'IMSD/USED' }));
-                              setIsTxnModalOpen(true);
-                            }}
-                            className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 text-emerald-800 dark:text-emerald-300 rounded-lg text-[11px] font-bold transition border border-emerald-200 dark:border-emerald-800"
-                            title="Receive Inward Stock"
-                          >
-                            + Inward
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setSelectedItemForTxn(item);
-                              setTxnType('OUTWARD');
-                              setTxnFormData(prev => ({ ...prev, itemId: item.id, quantity: 1, purposeOrSection: 'Track Maintenance' }));
-                              setIsTxnModalOpen(true);
-                            }}
-                            className="px-2 py-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900 text-blue-800 dark:text-cyan-300 rounded-lg text-[11px] font-bold transition border border-blue-200 dark:border-blue-800"
-                            title="Issue to Staff / Gang"
-                          >
-                            - Issue
-                          </button>
-
-                          <button
-                            onClick={() => handleDeleteItem(item)}
-                            className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/60 rounded-lg border border-red-200 dark:border-red-800 transition"
-                            title="Delete Material Item Record"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>
@@ -1510,9 +1483,9 @@ export const StoreInventoryManager: React.FC = () => {
               </div>
             </div>
 
-            {/* Quick Item Switcher */}
-            <div className="flex items-center justify-between gap-3 mt-3 flex-wrap">
-              <div className="flex items-center gap-2">
+            {/* Operational Action Controls Shifted to Tally Book Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Select Item:</span>
                 <select
                   value={selectedItemForTally.id}
@@ -1520,7 +1493,7 @@ export const StoreInventoryManager: React.FC = () => {
                     const sel = items.find(i => i.id === e.target.value);
                     if (sel) setSelectedItemForTally(sel);
                   }}
-                  className="px-3 py-1 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  className="px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white max-w-xs truncate shadow-sm"
                 >
                   {items.map(i => (
                     <option key={i.id} value={i.id}>
@@ -1528,33 +1501,93 @@ export const StoreInventoryManager: React.FC = () => {
                     </option>
                   ))}
                 </select>
+
+                {isStoreKeeper && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewItemData({
+                        category: selectedItemForTally.category || 'T&P',
+                        unit: 'Nos',
+                        currentStock: 0,
+                        minBufferThreshold: 10,
+                        location: 'IMSD SMUN Store',
+                        priceListCode: '49',
+                        tallyCodeNo: '1',
+                        accountsFileNo: '3195'
+                      });
+                      setIsAddItemModalOpen(true);
+                    }}
+                    className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm transition"
+                    title="Add New Material Item to Store"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Add New Item</span>
+                  </button>
+                )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {isStoreKeeper && (
+                  <button
+                    type="button"
+                    onClick={() => setEditingItem(selectedItemForTally)}
+                    className="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900 text-indigo-800 dark:text-indigo-300 rounded-xl text-xs font-bold transition border border-indigo-200 dark:border-indigo-800 flex items-center gap-1 shadow-sm"
+                    title="Edit Item Master Details (Name, Stock, Buffer, Rate, Location, Category)"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                    <span>Edit Item Details</span>
+                  </button>
+                )}
+
                 <button
+                  type="button"
+                  onClick={() => setSelectedItemForQR(selectedItemForTally)}
+                  className="px-2.5 py-1.5 bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-950/60 dark:hover:bg-cyan-900 text-cyan-800 dark:text-cyan-300 rounded-xl text-xs font-bold transition border border-cyan-200 dark:border-cyan-800 flex items-center gap-1 shadow-sm"
+                  title="Generate & Print Dynamic QR Code for Bin Label"
+                >
+                  <QrCode className="w-3.5 h-3.5" />
+                  <span>QR Code</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => {
                     setSelectedItemForTxn(selectedItemForTally);
                     setTxnType('INWARD');
                     setTxnFormData(prev => ({ ...prev, itemId: selectedItemForTally.id, quantity: 1, purposeOrSection: 'IMSD/USED' }));
                     setIsTxnModalOpen(true);
                   }}
-                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm"
+                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm transition"
                 >
-                  <Plus className="w-3 h-3" />
-                  <span>+ Add Receipt Voucher</span>
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>+ Inward Receipt</span>
                 </button>
+
                 <button
+                  type="button"
                   onClick={() => {
                     setSelectedItemForTxn(selectedItemForTally);
                     setTxnType('OUTWARD');
                     setTxnFormData(prev => ({ ...prev, itemId: selectedItemForTally.id, quantity: 1, purposeOrSection: 'IMSD/USED' }));
                     setIsTxnModalOpen(true);
                   }}
-                  className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm"
+                  className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm transition"
                 >
-                  <ArrowUpRight className="w-3 h-3" />
+                  <ArrowUpRight className="w-3.5 h-3.5" />
                   <span>- Issue Voucher</span>
                 </button>
+
+                {isStoreKeeper && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteItem(selectedItemForTally)}
+                    className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/60 rounded-xl border border-red-200 dark:border-red-800 transition"
+                    title="Delete Material Item Record"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -1628,7 +1661,24 @@ export const StoreInventoryManager: React.FC = () => {
                   tallyTransactions.map((tx, idx) => (
                     <tr key={tx.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 text-center">
                       <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono">{formatToDDMMYYYY(tx.date)}</td>
-                      <td className="p-3 border border-slate-300 dark:border-slate-700 text-red-600 font-bold">{tx.referenceNo}</td>
+                      <td className="p-3 border border-slate-300 dark:border-slate-700 text-red-600 font-bold">
+                        <div>{tx.referenceNo}</div>
+                        {tx.referenceDocUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setViewingDocModal({
+                              url: tx.referenceDocUrl!,
+                              name: tx.referenceDocName || tx.referenceNo,
+                              type: tx.referenceDocName?.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg'
+                            })}
+                            className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-cyan-300 text-[10px] font-bold border border-blue-200 dark:border-blue-800 hover:bg-blue-100 transition shadow-sm"
+                            title="View Attached Gatepass / Voucher Document"
+                          >
+                            <Paperclip className="w-2.5 h-2.5" />
+                            <span>{tx.referenceDocName?.endsWith('.pdf') ? 'PDF' : 'Photo'} ({tx.referenceDocSizeKb || 120} KB)</span>
+                          </button>
+                        )}
+                      </td>
                       <td className="p-3 border border-slate-300 dark:border-slate-700">{tx.issuedToOrReceivedFrom}</td>
                       <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono">{tx.purposeOrSection}</td>
                       <td className="p-3 border border-slate-300 dark:border-slate-700 text-red-600 font-black font-mono">
@@ -1698,7 +1748,24 @@ export const StoreInventoryManager: React.FC = () => {
                   return (
                     <tr key={txn.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition">
                       <td className="p-3.5 font-mono text-slate-600 dark:text-slate-400">{formatToDDMMYYYY(txn.date)}</td>
-                      <td className="p-3.5 font-mono font-bold text-blue-700 dark:text-cyan-400">{txn.referenceNo}</td>
+                      <td className="p-3.5 font-mono font-bold text-blue-700 dark:text-cyan-400">
+                        <div>{txn.referenceNo}</div>
+                        {txn.referenceDocUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setViewingDocModal({
+                              url: txn.referenceDocUrl!,
+                              name: txn.referenceDocName || txn.referenceNo,
+                              type: txn.referenceDocName?.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg'
+                            })}
+                            className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-cyan-300 text-[10px] font-bold border border-blue-200 dark:border-blue-800 hover:bg-blue-100 transition shadow-sm"
+                            title="View Attached Gatepass / Voucher Document"
+                          >
+                            <Paperclip className="w-2.5 h-2.5" />
+                            <span>{txn.referenceDocName?.endsWith('.pdf') ? 'PDF' : 'Photo'} ({txn.referenceDocSizeKb || 120} KB)</span>
+                          </button>
+                        )}
+                      </td>
                       <td className="p-3.5 font-bold text-slate-900 dark:text-white">{txn.itemName}</td>
                       <td className="p-3.5">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
@@ -2337,6 +2404,90 @@ export const StoreInventoryManager: React.FC = () => {
                   onChange={e => setTxnFormData({ ...txnFormData, purposeOrSection: e.target.value })}
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                 />
+              </div>
+
+              {/* Reference Document / Gatepass / Voucher Upload (WhatsApp Compression) */}
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <Paperclip className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
+                    <span>Attach Gatepass / Voucher / Receipt Document (Optional)</span>
+                  </label>
+                  <span className="text-[10px] text-slate-500 font-medium">Max 2 MB (Auto-compresses to &lt;250 KB)</span>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <label className="cursor-pointer px-3 py-1.5 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-700 dark:text-cyan-300 rounded-xl text-xs font-bold border border-blue-200 dark:border-blue-800 flex items-center gap-1.5 transition">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>{attachedDoc ? 'Change Document' : '📸 Upload Photo or PDF'}</span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,application/pdf"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setIsCompressingDoc(true);
+                        setDocCompressionError(null);
+                        try {
+                          const res = await compressFileToTargetRange(file);
+                          setAttachedDoc(res);
+                        } catch (err: any) {
+                          setDocCompressionError(err.message || 'Compression failed.');
+                          setAttachedDoc(null);
+                        } finally {
+                          setIsCompressingDoc(false);
+                        }
+                      }}
+                    />
+                  </label>
+
+                  {attachedDoc && (
+                    <button
+                      type="button"
+                      onClick={() => setAttachedDoc(null)}
+                      className="text-red-500 hover:text-red-700 text-xs font-bold px-2 py-1"
+                    >
+                      ✕ Remove
+                    </button>
+                  )}
+                </div>
+
+                {isCompressingDoc && (
+                  <div className="text-[11px] text-blue-600 dark:text-cyan-400 flex items-center gap-1.5 animate-pulse">
+                    <RefreshCw className="w-3 h-3 animate-spin" />
+                    <span>Compressing file to 100–200 KB range...</span>
+                  </div>
+                )}
+
+                {docCompressionError && (
+                  <div className="text-[11px] text-red-600 dark:text-red-400 font-medium flex items-center gap-1">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    <span>{docCompressionError}</span>
+                  </div>
+                )}
+
+                {attachedDoc && !isCompressingDoc && (
+                  <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800 flex items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <div className="min-w-0">
+                        <div className="font-bold text-emerald-800 dark:text-emerald-300 truncate">{attachedDoc.fileName}</div>
+                        <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">
+                          Orig: {attachedDoc.originalSizeKb} KB ➔ Compressed: <span className="font-bold">{attachedDoc.compressedSizeKb} KB</span> {attachedDoc.compressionRatio > 0 ? `(${attachedDoc.compressionRatio}% saved)` : ''}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setViewingDocModal({ url: attachedDoc.dataUrl, name: attachedDoc.fileName, type: attachedDoc.fileType })}
+                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold shrink-0 flex items-center gap-1 shadow-sm"
+                    >
+                      <Eye className="w-3 h-3" />
+                      <span>Preview</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
@@ -3351,6 +3502,66 @@ export const StoreInventoryManager: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------------------- */}
+      {/* 8. REFERENCE DOCUMENT FULL PREVIEW MODAL */}
+      {/* ------------------------------------------------------------------------- */}
+      {viewingDocModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-3xl w-full max-w-3xl shadow-2xl p-6 space-y-4 max-h-[92vh] flex flex-col animate-scaleUp">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
+                <h3 className="text-base font-black text-slate-900 dark:text-white truncate">
+                  {viewingDocModal.name || 'Reference Document (Gatepass / Voucher)'}
+                </h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={viewingDocModal.url}
+                  download={viewingDocModal.name || 'Voucher_Document'}
+                  className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900 text-blue-700 dark:text-cyan-300 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-blue-200 dark:border-blue-800"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download</span>
+                </a>
+                <button
+                  onClick={() => setViewingDocModal(null)}
+                  className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 p-2 flex items-center justify-center min-h-[300px]">
+              {viewingDocModal.type === 'application/pdf' || viewingDocModal.name?.toLowerCase().endsWith('.pdf') ? (
+                <iframe
+                  src={viewingDocModal.url}
+                  className="w-full h-[65vh] rounded-xl"
+                  title="Reference PDF Document"
+                />
+              ) : (
+                <img
+                  src={viewingDocModal.url}
+                  alt="Reference Document"
+                  className="max-h-[65vh] max-w-full object-contain rounded-xl shadow-md"
+                />
+              )}
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setViewingDocModal(null)}
+                className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-xs shadow-md"
+              >
+                Close Preview
+              </button>
+            </div>
           </div>
         </div>
       )}

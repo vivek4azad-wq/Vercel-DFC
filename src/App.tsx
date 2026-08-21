@@ -664,7 +664,7 @@ function MainAppShell() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f1f8f4] dark:bg-[#070c18] text-slate-900 dark:text-slate-100 flex flex-col antialiased transition-colors duration-200 w-full max-w-[100vw] overflow-x-hidden">
+    <div className="min-h-screen bg-[#f1f8f4] dark:bg-[#070c18] text-slate-900 dark:text-slate-100 flex flex-col antialiased transition-colors duration-200 w-full max-w-[100vw] overflow-x-clip">
       {/* Top Header Navbar */}
       <Navbar
         activeTab={currentTab}

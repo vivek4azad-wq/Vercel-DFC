@@ -52,8 +52,13 @@ import {
   UserX,
   TrendingDown,
   Droplet,
-  Settings
+  Settings,
+  Camera,
+  Image as ImageIcon,
+  ZoomIn,
+  RefreshCw
 } from 'lucide-react';
+import { compressFileToTargetRange } from '../utils/fileCompression.ts';
 import type {
   PWayDailyWorkRecord,
   PWayMonthlyProgramRecord,
@@ -184,6 +189,11 @@ export const PWayWorkManager: React.FC = () => {
   const [inspectionStatusFilter, setInspectionStatusFilter] = useState<string>('ALL');
   const [manpowerFilter, setManpowerFilter] = useState<'ALL' | 'SHORTAGE_ONLY' | 'FULL_STRENGTH'>('ALL');
 
+  // MTS Gang Work Site Photo Upload State
+  const [isCompressingPhoto, setIsCompressingPhoto] = useState(false);
+  const [photoCompressionError, setPhotoCompressionError] = useState<string | null>(null);
+  const [viewingPhotoModal, setViewingPhotoModal] = useState<{ url: string; title: string } | null>(null);
+
   // Modals
   const [isAddProgressModalOpen, setIsAddProgressModalOpen] = useState(false);
   const [editingProgressId, setEditingProgressId] = useState<string | null>(null);
@@ -204,7 +214,8 @@ export const PWayWorkManager: React.FC = () => {
     supervisor: 'Gurpreet Singh (Mate / 9876543210)',
     dfccilRep: 'Pinki Sharma (MTS / 9592751503)',
     status: 'COMPLETED',
-    remarks: ''
+    remarks: '',
+    photos: []
   });
 
   const [isAddProgramModalOpen, setIsAddProgramModalOpen] = useState(false);
@@ -430,6 +441,7 @@ export const PWayWorkManager: React.FC = () => {
         dfccilRep: progressFormData.dfccilRep || 'Pinki Sharma (MTS)',
         status: progressFormData.status || 'COMPLETED',
         remarks: progressFormData.remarks || '',
+        photos: progressFormData.photos || [],
         updatedAt: new Date().toISOString(),
         updatedBy: currentUser?.name || 'DFCCIL Personnel'
       };
@@ -999,6 +1011,25 @@ export const PWayWorkManager: React.FC = () => {
                         </td>
                         <td className="p-3">
                           <p className="font-medium text-slate-900 dark:text-white text-xs">{item.workDone}</p>
+                          {item.photos && item.photos.length > 0 && (
+                            <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                              {item.photos.map((ph, phIdx) => (
+                                <button
+                                  key={phIdx}
+                                  type="button"
+                                  onClick={() => setViewingPhotoModal({ url: ph, title: `${item.workDone || 'Site Photo'} (Km ${item.fromKm.toFixed(3)}–${item.toKm.toFixed(3)})` })}
+                                  className="relative group rounded-lg overflow-hidden border border-blue-300 dark:border-blue-700 w-10 h-7 shrink-0 shadow-sm hover:ring-2 hover:ring-blue-400 transition"
+                                  title="Click to view full-screen site photo"
+                                >
+                                  <img src={ph} alt="Thumb" className="w-full h-full object-cover group-hover:scale-110 transition" />
+                                </button>
+                              ))}
+                              <span className="text-[10px] text-blue-600 dark:text-cyan-400 font-bold flex items-center gap-0.5">
+                                <Camera className="w-2.5 h-2.5" />
+                                <span>{item.photos.length} Photo{item.photos.length > 1 ? 's' : ''}</span>
+                              </span>
+                            </div>
+                          )}
                         </td>
                         <td className="p-3 font-mono font-semibold">{item.quantityOrLength}</td>
                         <td className="p-3 text-slate-700 dark:text-slate-300">{item.supervisor}</td>
@@ -1284,6 +1315,96 @@ export const PWayWorkManager: React.FC = () => {
                 </div>
               </div>
 
+              {/* MTS Gang Work Site Photo Upload (WhatsApp Compression) */}
+              <div className="p-3.5 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-2xl space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 text-xs">
+                    <Camera className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
+                    <span>MTS / Gang Live Site Work Photos (साइट पर काम की फोटो)</span>
+                  </label>
+                  <span className="text-[10px] text-slate-500 font-medium">Max 2 MB (Auto-compresses to &lt;250 KB)</span>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <label className="cursor-pointer px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition active:scale-95">
+                    <Camera className="w-3.5 h-3.5" />
+                    <span>📸 Take / Upload Site Photo</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setIsCompressingPhoto(true);
+                        setPhotoCompressionError(null);
+                        try {
+                          const res = await compressFileToTargetRange(file);
+                          setProgressFormData(prev => ({
+                            ...prev,
+                            photos: [...(prev.photos || []), res.dataUrl]
+                          }));
+                        } catch (err: any) {
+                          setPhotoCompressionError(err.message || 'Image compression failed.');
+                        } finally {
+                          setIsCompressingPhoto(false);
+                        }
+                      }}
+                    />
+                  </label>
+
+                  {progressFormData.photos && progressFormData.photos.length > 0 && (
+                    <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+                      ✅ {progressFormData.photos.length} Photo{progressFormData.photos.length > 1 ? 's' : ''} Attached
+                    </span>
+                  )}
+                </div>
+
+                {isCompressingPhoto && (
+                  <div className="text-[11px] text-blue-600 dark:text-cyan-400 flex items-center gap-1.5 animate-pulse font-medium">
+                    <RefreshCw className="w-3 h-3 animate-spin" />
+                    <span>Compressing image to 100–200 KB (WhatsApp quality)...</span>
+                  </div>
+                )}
+
+                {photoCompressionError && (
+                  <div className="text-[11px] text-red-600 dark:text-red-400 font-medium flex items-center gap-1">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    <span>{photoCompressionError}</span>
+                  </div>
+                )}
+
+                {/* Uploaded Photos Grid Preview */}
+                {progressFormData.photos && progressFormData.photos.length > 0 && (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-1">
+                    {progressFormData.photos.map((photoUrl, pIdx) => (
+                      <div key={pIdx} className="relative group rounded-xl overflow-hidden border-2 border-blue-400 bg-black aspect-video shadow-sm">
+                        <img
+                          src={photoUrl}
+                          alt={`Site Photo ${pIdx + 1}`}
+                          className="w-full h-full object-cover cursor-pointer hover:scale-105 transition"
+                          onClick={() => setViewingPhotoModal({ url: photoUrl, title: `Site Photo ${pIdx + 1} - ${progressFormData.workDone || 'Track Work'}` })}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProgressFormData(prev => ({
+                              ...prev,
+                              photos: (prev.photos || []).filter((_, idx) => idx !== pIdx)
+                            }));
+                          }}
+                          className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 shadow-md hover:bg-red-700 opacity-90 hover:opacity-100 transition"
+                          title="Remove Photo"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
@@ -1300,6 +1421,58 @@ export const PWayWorkManager: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ---------------------------------------------------------------------
+          MTS SITE WORK PHOTO FULL-SCREEN PREVIEW MODAL
+      ---------------------------------------------------------------------- */}
+      {viewingPhotoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-3xl w-full max-w-3xl shadow-2xl p-5 space-y-4 max-h-[92vh] flex flex-col animate-scaleUp">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Camera className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
+                <h3 className="text-base font-black text-slate-900 dark:text-white truncate">
+                  {viewingPhotoModal.title || 'MTS Site Work Photo'}
+                </h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={viewingPhotoModal.url}
+                  download="MTS_Site_Work_Photo.jpg"
+                  className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900 text-blue-700 dark:text-cyan-300 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-blue-200 dark:border-blue-800"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download</span>
+                </a>
+                <button
+                  onClick={() => setViewingPhotoModal(null)}
+                  className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-950 p-2 flex items-center justify-center min-h-[300px]">
+              <img
+                src={viewingPhotoModal.url}
+                alt="Site Work"
+                className="max-h-[68vh] max-w-full object-contain rounded-xl shadow-lg"
+              />
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setViewingPhotoModal(null)}
+                className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-xs shadow-md"
+              >
+                Close Preview
+              </button>
+            </div>
           </div>
         </div>
       )}

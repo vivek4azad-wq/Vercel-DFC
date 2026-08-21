@@ -899,6 +899,9 @@ export interface StoreTransactionRecord {
   purposeOrSection: string; // प्राप्ति या निर्गम का उद्देश्य (e.g. "IMSD/USED")
   authorizedBy: string; // "Vivek Kumar Azad (APM)"
   remarks?: string;
+  referenceDocUrl?: string; // Base64 dataURL / image or PDF of Gatepass, Voucher, Bill, Receipt
+  referenceDocName?: string; // File name (e.g. "Gatepass_GP-771.jpg")
+  referenceDocSizeKb?: number; // Size in KB (< 250 KB)
   createdAt: string;
   // Departmental Tally Ledger Quantities
   receiptQty?: number; // प्राप्ति (Receipt)

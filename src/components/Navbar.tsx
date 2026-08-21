@@ -126,7 +126,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <>
       <header
-        className="sticky top-0 z-40 bg-[#0f2b5c] text-white shadow-xl border-b border-[#1b3d75] transition-all select-none w-full max-w-[100vw] overflow-visible"
+        className="sticky top-0 z-50 bg-[#0f2b5c] text-white shadow-xl border-b border-[#1b3d75] transition-all select-none w-full max-w-[100vw] overflow-visible"
         style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 8px)' }}
       >
         {/* Top Brand & Actions Row */}
