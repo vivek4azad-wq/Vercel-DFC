@@ -19,7 +19,8 @@ import {
   Sparkles,
   Bot,
   Package,
-  ShieldAlert
+  ShieldAlert,
+  Zap
 } from 'lucide-react';
 import { AboutModal } from './AboutModal.tsx';
 import { SupabaseSyncBanner } from './SupabaseSyncBanner.tsx';
@@ -188,6 +189,23 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="hidden sm:inline">Search / Km</span>
             </button>
 
+            {/* ⚡ Groq AI Quick Launcher */}
+            <button
+              type="button"
+              onClick={() => {
+                if (onOpenAIChat) {
+                  onOpenAIChat();
+                } else {
+                  window.dispatchEvent(new Event('raildiary_open_ai_chat'));
+                }
+              }}
+              className="px-2.5 sm:px-3 py-1.5 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 active:scale-95 text-slate-950 rounded-xl text-xs font-black border border-amber-300/50 shadow-md flex items-center gap-1.5 transition"
+              title="Open Groq Ultra-Fast AI Assistant"
+            >
+              <Zap className="w-3.5 h-3.5 text-slate-950 fill-current" />
+              <span>Groq AI ⚡</span>
+            </button>
+
             {/* ☀️/🌙 Theme Switcher */}
             <button
               type="button"
@@ -234,7 +252,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
                   {/* 🌟 Special Shifted Features: AI Search & GPS Map */}
                   <div className="space-y-1 bg-blue-950/70 p-1.5 rounded-xl border border-blue-800/60">
-                    {/* 🤖 AI Search */}
+                    {/* 🤖 Groq AI Search */}
                     <button
                       onClick={() => {
                         setIsThreeDotMenuOpen(false);
@@ -244,13 +262,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                           window.dispatchEvent(new Event('raildiary_open_ai_chat'));
                         }
                       }}
-                      className="w-full text-left px-3 py-2 text-xs rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold flex items-center justify-between shadow-sm transition active:scale-95"
+                      className="w-full text-left px-3 py-2 text-xs rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-slate-950 font-black flex items-center justify-between shadow-sm transition active:scale-95"
                     >
                       <div className="flex items-center gap-2">
-                        <Bot className="w-4 h-4 text-cyan-300 animate-pulse" />
-                        <span>AI Assistant &amp; Search</span>
+                        <Zap className="w-4 h-4 text-slate-950 fill-current animate-bounce" />
+                        <span>Groq AI Assistant</span>
                       </div>
-                      <span className="text-[9px] font-mono bg-white/20 px-1.5 py-0.5 rounded text-cyan-200">GEMINI</span>
+                      <span className="text-[9px] font-mono bg-slate-950 text-amber-300 px-1.5 py-0.5 rounded font-black">GROQ ⚡</span>
                     </button>
 
                     {/* 🗺️ DFCCIL GPS Map */}
