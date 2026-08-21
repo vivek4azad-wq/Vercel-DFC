@@ -379,6 +379,98 @@ body {
   font-weight: 500;
 }
 
+/* Dark Mode Overrides for Linear Track Diagram & Gradient Profile */
+.dark .v14-wrap {
+  background: #0b1329;
+  border-color: #1e293b;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.dark .v14-canvas {
+  background: #070c18;
+}
+
+.dark .v14-kmtext {
+  background: #1e293b;
+  color: #f87171;
+  border-color: #7f1d1d;
+}
+
+.dark .v14-station-name {
+  background: #1e293b;
+  color: #fca5a5;
+  border-color: #ef4444;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.dark .v14-track-a, .dark .v14-track-b {
+  background: #3b82f6;
+}
+
+.dark .v14-dtour {
+  background: rgba(220, 38, 38, 0.15);
+}
+
+.dark .v14-asset {
+  background: #0f172a;
+  border-color: #334155;
+  color: #cbd5e1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.dark .v14-asset:hover {
+  background: #1e293b;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+}
+
+.dark .v14-asset strong {
+  color: #f8fafc;
+}
+
+.dark .v14-beat.key { background: #083344; color: #67e8f9; border-color: #0e7490; }
+.dark .v14-beat.day { background: #052e16; color: #86efac; border-color: #15803d; }
+.dark .v14-beat.night { background: #2e1065; color: #c4b5fd; border-color: #6b21a8; }
+
+.dark .v143-row {
+  background: #0f172a;
+  border-color: #1e293b;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.dark .v143-chainage {
+  color: #cbd5e1;
+}
+
+.dark .v143-track svg {
+  stroke: #60a5fa;
+}
+
+.dark .v143-info {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dark .v143-info.RISE {
+  border-color: #15803d;
+  background: #052e16/40;
+}
+.dark .v143-info.FALL {
+  border-color: #991b1b;
+  background: #450a0a/40;
+}
+.dark .v143-info.LEVEL {
+  border-color: #1d4ed8;
+  background: #172554/40;
+}
+
+.dark .v143-info.RISE b { color: #4ade80; }
+.dark .v143-info.FALL b { color: #f87171; }
+.dark .v143-info.LEVEL b { color: #60a5fa; }
+
+.dark .v143-meta {
+  color: #94a3b8;
+}
+
 /* --------------------------------------------------------------------------
    HIGH QUALITY @media print OPTIMIZATION (Immediate Live Screen PDF Export)
 -------------------------------------------------------------------------- */

@@ -137,8 +137,10 @@ const OUTSOURCE_STATUS_OPTIONS: {
 
 export const StaffAttendance: React.FC = () => {
   const { currentUser, role, currentAppRole } = useAuth();
-  const isSuperAdmin = role === 'SUPER_ADMIN' || currentAppRole === 'APM';
-  const isOfficerUser = role === 'OFFICER' || currentAppRole === 'Executive';
+  const isSuperAdmin = role === 'SUPER_ADMIN' || currentAppRole === 'APM' || currentAppRole === 'Admin';
+  const isOfficerUser = role === 'OFFICER' || currentAppRole === 'Executive' || currentAppRole === 'Sectional';
+  const isClerkUser = role === 'CLERK' || currentAppRole === 'Clerk';
+  const canEditAttendance = isSuperAdmin || isOfficerUser || isClerkUser;
 
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
@@ -457,6 +459,10 @@ export const StaffAttendance: React.FC = () => {
 
   // Mark status for single staff
   const handleMarkStaffStatus = async (staff: StaffRosterItem, status: AttendanceStatus, remarks?: string) => {
+    if (!canEditAttendance) {
+      alert('🔒 View-Only Mode: You do not have permission to modify attendance. Only Super Admin, Sectional Officers, and Clerk can mark/update attendance.');
+      return;
+    }
     if (isDateLockedForNonAdmin) {
       alert('🔒 Attendance Lock: 4 din se purani attendance entry me badlav restricted hai. Yeh entry kewal APM / Civil (Shri Vivek Kumar Azad, Super Admin) ke login se hi unlock/edit ho sakti hai.');
       return;
@@ -491,6 +497,10 @@ export const StaffAttendance: React.FC = () => {
 
   // Bulk mark all staff for the day
   const handleBulkMark = async (status: AttendanceStatus, defaultRemarks?: string) => {
+    if (!canEditAttendance) {
+      alert('🔒 View-Only Mode: You do not have permission to modify attendance.');
+      return;
+    }
     if (isDateLockedForNonAdmin) {
       alert('🔒 Attendance Lock: 4 din se purani attendance entry me badlav restricted hai. Yeh entry kewal APM / Civil (Shri Vivek Kumar Azad, Super Admin) ke login se hi unlock/edit ho sakti hai.');
       return;
@@ -528,6 +538,10 @@ export const StaffAttendance: React.FC = () => {
 
   // Declare Day Type (Toggle between Working Day, Sunday/Rest, and NH)
   const handleDeclareDayType = async (type: 'NORMAL' | 'SUNDAY' | 'NH', customTitle?: string) => {
+    if (!canEditAttendance) {
+      alert('🔒 View-Only Mode: You do not have permission to modify day status.');
+      return;
+    }
     if (isDateLockedForNonAdmin) {
       alert('🔒 Attendance Lock: 4 din se purani attendance entry me badlav restricted hai. Yeh entry kewal APM / Civil (Shri Vivek Kumar Azad, Super Admin) ke login se hi unlock/edit ho sakti hai.');
       return;
@@ -1021,33 +1035,33 @@ export const StaffAttendance: React.FC = () => {
   return (
     <div className="space-y-6 animate-fadeIn pb-12 print-container">
       {/* Top Brand Banner */}
-      <div className="bg-white border border-slate-200 p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl">
+          <div className="p-3 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-xl">
             <CalendarCheck className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold text-slate-900 tracking-tight">Staff Daily Attendance &amp; Absentee ERP</h2>
-              <span className="px-2 py-0.5 rounded text-[10px] font-black bg-blue-50 text-[#123b72] border border-blue-200 uppercase">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Staff Daily Attendance &amp; Absentee ERP</h2>
+              <span className="px-2 py-0.5 rounded text-[10px] font-black bg-blue-50 dark:bg-blue-900/30 text-[#123b72] dark:text-blue-300 border border-blue-200 dark:border-blue-800 uppercase">
                 Official Roster
               </span>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               DFCCIL IMSD SMUN · Daily Roll Call, Sunday/NH &amp; Leave Tagging, Complete Month-End Absentee Statement
             </p>
           </div>
         </div>
 
         {/* Global Tab Toggles */}
-        <div className="flex flex-wrap items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-200 text-xs">
+        <div className="flex flex-wrap items-center gap-1.5 bg-slate-50 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
           <button
             type="button"
             onClick={() => setActiveTab('daily')}
             className={`px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
               activeTab === 'daily'
                 ? 'bg-[#123b72] text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700'
             }`}
           >
             <Calendar className="w-3.5 h-3.5" />
@@ -1060,7 +1074,7 @@ export const StaffAttendance: React.FC = () => {
             className={`px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
               activeTab === 'monthly'
                 ? 'bg-[#123b72] text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700'
             }`}
           >
             <FileSpreadsheet className="w-3.5 h-3.5" />
@@ -1073,7 +1087,7 @@ export const StaffAttendance: React.FC = () => {
             className={`px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
               activeTab === 'holidays'
                 ? 'bg-[#123b72] text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700'
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
@@ -1083,7 +1097,7 @@ export const StaffAttendance: React.FC = () => {
       </div>
 
       {saveSuccessMsg && (
-        <div className="p-3.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs flex items-center gap-2 shadow-sm animate-fadeIn">
+        <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs flex items-center gap-2 shadow-sm animate-fadeIn">
           <span>{saveSuccessMsg}</span>
         </div>
       )}
@@ -1094,26 +1108,26 @@ export const StaffAttendance: React.FC = () => {
       {activeTab === 'daily' && (
         <div className="space-y-6">
           {/* Date Selector & Day Declaration Power Bar */}
-          <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-700">Select Date:</span>
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Select Date:</span>
                   <input
                     type="date"
                     value={selectedDate}
                     onChange={e => setSelectedDate(e.target.value)}
-                    className="px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-blue-600"
+                    className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-blue-600"
                   />
                 </div>
 
                 {/* Day status badge */}
                 <span className={`px-3 py-1 rounded-xl text-xs font-bold border flex items-center gap-1.5 ${
                   currentDateInfo.isNH
-                    ? 'bg-purple-100 text-purple-900 border-purple-300'
+                    ? 'bg-purple-100 dark:bg-purple-950/40 text-purple-900 dark:text-purple-300 border-purple-300 dark:border-purple-800'
                     : currentDateInfo.isSunday
-                    ? 'bg-blue-100 text-blue-900 border-blue-300'
-                    : 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                    ? 'bg-blue-100 dark:bg-blue-950/40 text-blue-900 dark:text-blue-300 border-blue-300 dark:border-blue-800'
+                    : 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
                 }`}>
                   {currentDateInfo.isNH ? '🎉 ' : currentDateInfo.isSunday ? '☕ ' : '🟢 '}
                   <span>{currentDateInfo.title}</span>
@@ -1122,14 +1136,14 @@ export const StaffAttendance: React.FC = () => {
 
               {/* Day Declaration Admin Controls */}
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[11px] font-bold text-slate-500 mr-1">Declare Day:</span>
+                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mr-1">Declare Day:</span>
                 <button
                   type="button"
                   onClick={() => handleDeclareDayType('NORMAL')}
                   className={`px-2.5 py-1 rounded-lg text-xs font-bold transition border ${
                     !currentDateInfo.isHoliday
                       ? 'bg-emerald-700 text-white border-emerald-800 shadow-sm'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-emerald-50'
+                      : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-emerald-50'
                   }`}
                 >
                   🟢 Working Day
@@ -1140,7 +1154,7 @@ export const StaffAttendance: React.FC = () => {
                   className={`px-2.5 py-1 rounded-lg text-xs font-bold transition border ${
                     currentDateInfo.type === 'SUNDAY'
                       ? 'bg-blue-700 text-white border-blue-800 shadow-sm'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-blue-50'
+                      : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-blue-50'
                   }`}
                 >
                   ☕ Sunday / Rest
@@ -1151,7 +1165,7 @@ export const StaffAttendance: React.FC = () => {
                   className={`px-2.5 py-1 rounded-lg text-xs font-bold transition border ${
                     currentDateInfo.isNH
                       ? 'bg-purple-700 text-white border-purple-800 shadow-sm'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-purple-50'
+                      : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-purple-50'
                   }`}
                 >
                   🎉 National Holiday (NH)
@@ -1162,24 +1176,24 @@ export const StaffAttendance: React.FC = () => {
             
             {/* 🔒 4-Day Historical Lock Alert Banner */}
             {isDateLockedForNonAdmin && (
-              <div className="p-3.5 bg-amber-50 text-amber-900 border-2 border-amber-300 rounded-xl flex items-center justify-between gap-3 text-xs shadow-sm animate-fadeIn">
+              <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border-2 border-amber-300 dark:border-amber-800 rounded-xl flex items-center justify-between gap-3 text-xs shadow-sm animate-fadeIn">
                 <div className="flex items-center gap-2 font-bold">
-                  <Lock className="w-5 h-5 text-amber-700 shrink-0" />
+                  <Lock className="w-5 h-5 text-amber-700 dark:text-amber-400 shrink-0" />
                   <span>🔒 Attendance Record Locked: {selectedDate} ki attendance 4 din se purani hai. Policy ke anusar purane records me badlav restricted hai. Yeh record kewal APM / Civil (Shri Vivek Kumar Azad, Super Admin ID) ke login se hi unlock aur edit kiya ja sakta hai.</span>
                 </div>
-                <span className="px-2.5 py-1 bg-amber-200 text-amber-950 font-black rounded-lg font-mono text-[10px] whitespace-nowrap shadow-sm">
+                <span className="px-2.5 py-1 bg-amber-200 dark:bg-amber-800 text-amber-950 dark:text-amber-100 font-black rounded-lg font-mono text-[10px] whitespace-nowrap shadow-sm">
                   🔒 LOCKED (&gt; 4 DAYS)
                 </span>
               </div>
             )}
 
             {isSuperAdmin && (
-              <div className="p-2.5 bg-emerald-50 text-emerald-900 border border-emerald-300 rounded-xl flex items-center justify-between gap-2 text-xs shadow-sm">
+              <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 rounded-xl flex items-center justify-between gap-2 text-xs shadow-sm">
                 <div className="flex items-center gap-2 font-bold">
-                  <Unlock className="w-4 h-4 text-emerald-700 shrink-0" />
+                  <Unlock className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
                   <span>🔓 Super Admin Override Active: Logged in as APM / Civil (Shri Vivek Kumar Azad). All past attendance dates (&gt; 4 days) are fully unlocked for administrative editing.</span>
                 </div>
-                <span className="px-2 py-0.5 bg-emerald-200 text-emerald-950 font-black rounded-md font-mono text-[9px] whitespace-nowrap">
+                <span className="px-2 py-0.5 bg-emerald-200 dark:bg-emerald-800 text-emerald-950 dark:text-emerald-100 font-black rounded-md font-mono text-[9px] whitespace-nowrap">
                   APM UNLOCKED
                 </span>
               </div>
@@ -1187,40 +1201,40 @@ export const StaffAttendance: React.FC = () => {
 
             {/* Attendance Metrics Counters */}
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-              <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl">
-                <span className="text-[10px] text-slate-500 font-bold block uppercase">Total Staff</span>
-                <span className="text-xl font-black text-slate-900 font-mono">{dailyMetrics.total}</span>
+              <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 rounded-xl">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block uppercase">Total Staff</span>
+                <span className="text-xl font-black text-slate-900 dark:text-white font-mono">{dailyMetrics.total}</span>
               </div>
-              <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-xl">
-                <span className="text-[10px] text-emerald-700 font-bold block uppercase">Present (P)</span>
-                <span className="text-xl font-black text-emerald-900 font-mono">{dailyMetrics.p}</span>
+              <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 p-3 rounded-xl">
+                <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold block uppercase">Present (P)</span>
+                <span className="text-xl font-black text-emerald-900 dark:text-emerald-200 font-mono">{dailyMetrics.p}</span>
               </div>
-              <div className="bg-red-50 border border-red-200 p-3 rounded-xl">
-                <span className="text-[10px] text-red-700 font-bold block uppercase">Absent (A)</span>
-                <span className="text-xl font-black text-red-900 font-mono">{dailyMetrics.a}</span>
+              <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 p-3 rounded-xl">
+                <span className="text-[10px] text-red-700 dark:text-red-400 font-bold block uppercase">Absent (A)</span>
+                <span className="text-xl font-black text-red-900 dark:text-red-200 font-mono">{dailyMetrics.a}</span>
               </div>
-              <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl">
-                <span className="text-[10px] text-amber-700 font-bold block uppercase">Leaves (LAP/CL/L)</span>
-                <span className="text-xl font-black text-amber-900 font-mono">{dailyMetrics.l}</span>
+              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-3 rounded-xl">
+                <span className="text-[10px] text-amber-700 dark:text-amber-400 font-bold block uppercase">Leaves (LAP/CL/L)</span>
+                <span className="text-xl font-black text-amber-900 dark:text-amber-200 font-mono">{dailyMetrics.l}</span>
               </div>
-              <div className="bg-blue-50 border border-blue-200 p-3 rounded-xl">
-                <span className="text-[10px] text-blue-700 font-bold block uppercase">Rest / Sunday</span>
-                <span className="text-xl font-black text-blue-900 font-mono">{dailyMetrics.rest}</span>
+              <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-3 rounded-xl">
+                <span className="text-[10px] text-blue-700 dark:text-blue-400 font-bold block uppercase">Rest / Sunday</span>
+                <span className="text-xl font-black text-blue-900 dark:text-blue-200 font-mono">{dailyMetrics.rest}</span>
               </div>
-              <div className="bg-purple-50 border border-purple-200 p-3 rounded-xl">
-                <span className="text-[10px] text-purple-700 font-bold block uppercase">Holiday (NH)</span>
-                <span className="text-xl font-black text-purple-900 font-mono">{dailyMetrics.nh}</span>
+              <div className="bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 p-3 rounded-xl">
+                <span className="text-[10px] text-purple-700 dark:text-purple-400 font-bold block uppercase">Holiday (NH)</span>
+                <span className="text-xl font-black text-purple-900 dark:text-purple-200 font-mono">{dailyMetrics.nh}</span>
               </div>
-              <div className="bg-violet-50 border border-violet-200 p-3 rounded-xl">
-                <span className="text-[10px] text-violet-700 font-bold block uppercase">Duty / Tour (OD)</span>
-                <span className="text-xl font-black text-violet-900 font-mono">{dailyMetrics.od}</span>
+              <div className="bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800 p-3 rounded-xl">
+                <span className="text-[10px] text-violet-700 dark:text-violet-400 font-bold block uppercase">Duty / Tour (OD)</span>
+                <span className="text-xl font-black text-violet-900 dark:text-violet-200 font-mono">{dailyMetrics.od}</span>
               </div>
             </div>
 
             {/* Quick Bulk Marking Actions */}
-            <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 text-xs">
+            <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 dark:border-slate-800 text-xs">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-slate-500 font-bold text-[11px]">Quick Bulk Mark:</span>
+                <span className="text-slate-500 dark:text-slate-400 font-bold text-[11px]">Quick Bulk Mark:</span>
                 <button
                   type="button"
                   onClick={() => handleBulkMark('P', 'Normal Duty')}
@@ -1254,7 +1268,7 @@ export const StaffAttendance: React.FC = () => {
           </div>
 
           {/* Search and Filters Bar */}
-          <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="relative flex-1 w-full">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
               <input
@@ -1262,7 +1276,7 @@ export const StaffAttendance: React.FC = () => {
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Search by Name, ID, or Section..."
-                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white"
+                className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900 placeholder:text-slate-400"
               />
             </div>
 
@@ -1270,7 +1284,7 @@ export const StaffAttendance: React.FC = () => {
               <select
                 value={selectedCategoryFilter}
                 onChange={e => setSelectedCategoryFilter(e.target.value)}
-                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none"
+                className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none"
               >
                 <option value="ALL">All Categories</option>
                 <option value="PERMANENT">Permanent Staff</option>
@@ -1284,7 +1298,7 @@ export const StaffAttendance: React.FC = () => {
               <select
                 value={selectedStatusFilter}
                 onChange={e => setSelectedStatusFilter(e.target.value)}
-                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none"
+                className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none"
               >
                 <option value="ALL">All Attendance Statuses</option>
                 <option value="P">Present (P)</option>
@@ -1306,10 +1320,10 @@ export const StaffAttendance: React.FC = () => {
           </div>
 
           {/* Daily Attendance Table with Horizontal Slider */}
-          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
             <div className="overflow-x-auto w-full max-w-full scrollbar-thin scrollbar-thumb-slate-300">
-              <table className="w-full text-left text-xs text-slate-800">
-                <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-600 border-b border-slate-200">
+              <table className="w-full text-left text-xs text-slate-800 dark:text-slate-200">
+                <thead className="bg-slate-50 dark:bg-slate-800/80 text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                   <tr>
                     <th className="p-3 w-12 text-center">#</th>
                     <th className="p-3 min-w-[240px]">Staff Member (Name, ID, Designation)</th>
@@ -1318,14 +1332,14 @@ export const StaffAttendance: React.FC = () => {
                     <th className="p-3 text-right min-w-[120px]">Quick Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200">
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                   {filteredDailyStaff.map((staff, idx) => {
                     const { status, remarks } = getStaffStatus(staff);
                     const cleanPhone = (staff.phone || '').replace(/[^0-9]/g, '');
                     const statusOptions = staff.isPermanent ? PERMANENT_STATUS_OPTIONS : OUTSOURCE_STATUS_OPTIONS;
 
                     return (
-                      <tr key={staff.id} className="hover:bg-slate-50 transition">
+                      <tr key={staff.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
                         <td className="p-3 text-slate-400 font-mono text-center">{idx + 1}</td>
                         
                         {/* Streamlined Combined Staff Info (Name, AWPO/Emp ID, Designation) */}
@@ -1344,15 +1358,15 @@ export const StaffAttendance: React.FC = () => {
                                 category: staff.categoryLabel as any,
                                 photoUrl: staff.photoUrl
                               })}
-                              className="font-black text-sm text-slate-900 hover:text-blue-700 hover:underline text-left inline-flex items-center gap-1.5"
+                              className="font-black text-sm text-slate-900 dark:text-white hover:text-blue-700 dark:hover:text-cyan-400 hover:underline text-left inline-flex items-center gap-1.5"
                             >
                               <span>{staff.name}</span>
                             </button>
                             <div className="flex items-center gap-2 flex-wrap text-xs">
-                              <span className="font-mono text-[10px] bg-blue-50 text-[#0f2b5c] font-black px-1.5 py-0.5 rounded border border-blue-200">
+                              <span className="font-mono text-[10px] bg-blue-50 dark:bg-blue-900/30 text-[#0f2b5c] dark:text-blue-300 font-black px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-800">
                                 {staff.awpoId}
                               </span>
-                              <span className="text-slate-600 font-bold text-xs">
+                              <span className="text-slate-600 dark:text-slate-400 font-bold text-xs">
                                 {staff.designation}
                               </span>
                             </div>
@@ -1389,7 +1403,7 @@ export const StaffAttendance: React.FC = () => {
                             defaultValue={remarks}
                             onBlur={e => handleMarkStaffStatus(staff, status, e.target.value)}
                             placeholder="Remarks..."
-                            className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 w-full focus:bg-white focus:outline-none focus:border-blue-500"
+                            className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-800 dark:text-slate-200 w-full focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-blue-500"
                           />
                         </td>
                         
@@ -1405,7 +1419,7 @@ export const StaffAttendance: React.FC = () => {
                                 category: staff.categoryLabel as any,
                                 photoUrl: staff.photoUrl
                               })}
-                              className="px-2 py-1 bg-blue-50 text-blue-700 rounded-lg text-[11px] font-bold border border-blue-200 hover:bg-blue-100"
+                              className="px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-[11px] font-bold border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/50"
                             >
                               🪪 ID
                             </button>
@@ -1413,7 +1427,7 @@ export const StaffAttendance: React.FC = () => {
                               <>
                                 <a
                                   href={`tel:${staff.phone}`}
-                                  className="p-1 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200 hover:bg-emerald-100"
+                                  className="p-1 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-lg border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100"
                                   title="Call Staff"
                                 >
                                   <Phone className="w-3.5 h-3.5" />

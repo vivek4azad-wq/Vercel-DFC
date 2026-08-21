@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { AboutModal } from './AboutModal.tsx';
 import { SupabaseSyncBanner } from './SupabaseSyncBanner.tsx';
+import { useTheme } from '../context/ThemeContext.tsx';
 import type { AppUserRole } from '../types/index.ts';
 
 interface NavbarProps {
@@ -41,7 +42,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenInspectionsAlert
 }) => {
   const { currentUser, role, currentAppRole, switchAppRole, logout } = useAuth();
-  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+  const { isDark, toggleTheme } = useTheme();
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
@@ -49,18 +50,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   // 3-Dot Dropdown Menu State
   const [isThreeDotMenuOpen, setIsThreeDotMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  const toggleTheme = () => {
-    const nextDark = !isDark;
-    setIsDark(nextDark);
-    if (nextDark) {
-      document.documentElement.classList.add('dark');
-      localStorage.theme = 'dark';
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.theme = 'light';
-    }
-  };
 
   // Close dropdown menu when clicking outside
   useEffect(() => {

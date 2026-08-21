@@ -234,6 +234,26 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
               >
                 {isSubmitting ? 'Authenticating...' : 'Sign In to Portal'}
               </button>
+
+              <div className="relative flex py-1 items-center">
+                <div className="flex-grow border-t border-slate-800"></div>
+                <span className="flex-shrink mx-3 text-[10px] uppercase font-bold text-slate-500">OR</span>
+                <div className="flex-grow border-t border-slate-800"></div>
+              </div>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  setIsSubmitting(true);
+                  await login('guest', 'guest');
+                  setIsSubmitting(false);
+                  onClose();
+                }}
+                className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-bold rounded-xl transition border border-slate-700 flex items-center justify-center gap-2 shadow-sm"
+              >
+                <span>👁️</span>
+                <span>Continue as Guest (View All Portal Data)</span>
+              </button>
             </form>
           )}
 

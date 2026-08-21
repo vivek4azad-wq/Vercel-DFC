@@ -32,57 +32,65 @@ export class RBACService {
     resource: string
   ): boolean {
     if (!role || !action || !resource) return false;
-    if (!['SUPER_ADMIN', 'OFFICER', 'STAFF'].includes(role)) return false;
 
     // 1. SUPER_ADMIN has unrestricted permissions across all resources and actions
-    if (role === 'SUPER_ADMIN') {
+    if (role === 'SUPER_ADMIN' || role === 'Admin' || role === 'APM') {
       return true;
     }
 
-    // 2. OFFICER (Executive / Arjun) Permissions:
+    // 2. GUEST Role: Unrestricted READ access across ALL portal data, no mutations
+    if (role === 'GUEST' || role === 'Guest' || role === 'ANONYMOUS') {
+      if (action === 'READ') return true;
+      return false;
+    }
+
+    // 3. CLERK Role: Full READ access, and ONLY Attendance modifications allowed
+    if (role === 'CLERK' || role === 'Clerk') {
+      if (action === 'READ') return true;
+      if ((action === 'CREATE' || action === 'UPDATE') && (resource === 'attendance' || resource === 'staff_attendance')) {
+        return true;
+      }
+      return false;
+    }
+
+    // 4. STORE_KEEPER: Store Inventory & Transactions
+    if (role === 'STORE_KEEPER' || role === 'StoreKeeper') {
+      if (action === 'READ') return true;
+      if ((action === 'CREATE' || action === 'UPDATE') && (resource === 'store' || resource === 'store_inventory' || resource === 'store_transactions')) {
+        return true;
+      }
+      return false;
+    }
+
+    // 5. OFFICER (Executive / Sectional) Permissions:
     // - P.Way Maintenance & Track Defects: Allowed to CREATE and UPDATE
     // - Assets (Bridges, Points, Curves, LWR, SEJ): Read-Only
     // - DELETE: Blocked (requires Super Admin APM approval)
-    if (role === 'OFFICER') {
+    if (role === 'OFFICER' || role === 'Sectional' || role === 'Executive') {
       if (action === 'READ') return true;
       if (action === 'GENERATE_QR') return true;
 
-      // Executive / Arjun can edit/create Track Defects & P-Way Maintenance modules
       if (action === 'CREATE' || action === 'UPDATE') {
         const allowedMutationResources = [
           'track_defects',
           'pway_daily_progress',
           'pway_monthly_program',
-          'pway_inspections'
+          'pway_inspections',
+          'attendance',
+          'staff_attendance'
         ];
         return allowedMutationResources.includes(resource);
       }
 
-      // Deletion is strictly blocked for Executive - must go through APM approval
       return false;
     }
 
-    // 3. STAFF (MTS) Permissions: Gang Working Data Entry Only, Read-Only for Assets
-    if (role === 'STAFF') {
+    // 6. STAFF (MTS) Permissions: Gang Working Data Entry Only, Read-Only for Assets
+    if (role === 'STAFF' || role === 'MTS') {
       if (action === 'READ') {
-        const allowedReadResources = [
-          'bridges',
-          'level_crossings',
-          'points_crossings',
-          'curves',
-          'track_defects',
-          'officers_staff',
-          'keymen',
-          'patrol_shifts',
-          'jurisdiction',
-          'pway_daily_progress',
-          'pway_monthly_program',
-          'pway_inspections'
-        ];
-        return allowedReadResources.includes(resource);
+        return true;
       }
 
-      // MTS can CREATE and UPDATE daily gang progress for current day
       if ((action === 'CREATE' || action === 'UPDATE') && resource === 'pway_daily_progress') {
         return true;
       }
@@ -91,15 +99,14 @@ export class RBACService {
         return true;
       }
 
-      // Staff cannot perform any mutations on assets or delete anything
       return false;
     }
 
-    return false;
+    return action === 'READ';
   }
 
   static canAccessAdminPanel(user: UserSession | null): boolean {
-    return this.canPerform(user?.role, 'ADMIN_PANEL', 'admin');
+    return user?.role === 'SUPER_ADMIN';
   }
 
   static canCreateOrEditDefect(user: UserSession | null): boolean {

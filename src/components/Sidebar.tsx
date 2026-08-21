@@ -145,8 +145,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
       return masterNavItems;
     }
 
-    if (currentAppRole === 'Clerk') {
-      // 🔒 Clerk: Only able to see absentee statement & mark present/absent accordingly
+    if (currentAppRole === 'Guest' || role === 'GUEST') {
+      // 🔒 Guest: View-only access to ALL portal modules (Dashboard, Assets, Diagram, Staff, P-Way, Store, Attendance, Defects, KM Finder)
+      return masterNavItems.filter(item => item.id !== 'staff_logins' && item.id !== 'admin');
+    }
+
+    if (currentAppRole === 'Clerk' || role === 'CLERK') {
+      // 🔒 Clerk: Attendance (Modify permitted) and View Access for other modules
       return [
         {
           id: 'attendance',
@@ -168,6 +173,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
           shortLabel: 'Km Finder',
           icon: Search,
           badge: 'Quick'
+        },
+        {
+          id: 'categories',
+          label: 'Assets Categories (View)',
+          shortLabel: 'Categories',
+          icon: Grid,
+          badge: '8 Groups'
+        },
+        {
+          id: 'store',
+          label: 'Store & Tool Depot (View)',
+          shortLabel: 'Store ERP',
+          icon: Package,
+          badge: 'Depot'
         }
       ];
     }
@@ -222,33 +241,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
           shortLabel: 'Km Finder',
           icon: Search,
           badge: 'Finder'
-        }
-      ];
-    }
-
-    if (currentAppRole === 'Guest') {
-      // 🔒 Guest: View-only guest mode
-      return [
-        {
-          id: 'kmfinder',
-          label: 'Km Quick Finder',
-          shortLabel: 'Km Finder',
-          icon: Search,
-          badge: 'Quick'
-        },
-        {
-          id: 'diagram',
-          label: 'Track Schematic Diagram',
-          shortLabel: 'Linear View',
-          icon: Activity,
-          badge: '88.6Km'
-        },
-        {
-          id: 'staff',
-          label: 'Staff Directory',
-          shortLabel: 'Staff',
-          icon: Users,
-          badge: '82'
         }
       ];
     }

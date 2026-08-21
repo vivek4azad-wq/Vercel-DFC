@@ -7,7 +7,7 @@
 // RBAC Roles & Authentication
 // ---------------------------------------------------------------------------
 
-export type UserRole = 'SUPER_ADMIN' | 'OFFICER' | 'STAFF' | 'STORE_KEEPER';
+export type UserRole = 'SUPER_ADMIN' | 'OFFICER' | 'STAFF' | 'STORE_KEEPER' | 'CLERK' | 'GUEST';
 
 export interface UserAccount {
   id: string;

@@ -3669,155 +3669,155 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
       </div>
 
 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
- {/* 1. Day Security Patrol Table (SPD-01 to SPD-12) */}
- <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm space-y-3 p-4">
- <div className="flex items-center justify-between border-b border-slate-200 pb-3">
- <div className="flex items-center gap-2">
- <div className="p-2 bg-amber-100 rounded-lg text-amber-600">
- <Sun className="w-5 h-5" />
- </div>
- <div>
- <h3 className="text-sm sm:text-base font-bold text-[#0f2b5c]">
- Day Security Patrol (Shift 1: 15:00 to 23:00 hrs)
- </h3>
- <p className="text-[11px] text-slate-500">
- 12 Total Beats • Single Patrolman per Beat
- </p>
- </div>
- </div>
- <span className="px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-xs font-mono font-bold">
- {dayPatrols.filter(p => p.isFilled && p.patrolmanName && !p.patrolmanName.includes('Vacant')).length}/12 Filled
- </span>
- </div>
+  {/* 1. Day Security Patrol Table (SPD-01 to SPD-12) */}
+  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm space-y-3 p-4">
+  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+  <div className="flex items-center gap-2">
+  <div className="p-2 bg-amber-100 dark:bg-amber-950/50 rounded-lg text-amber-600 dark:text-amber-400">
+  <Sun className="w-5 h-5" />
+  </div>
+  <div>
+  <h3 className="text-sm sm:text-base font-bold text-[#0f2b5c] dark:text-blue-300">
+  Day Security Patrol (Shift 1: 15:00 to 23:00 hrs)
+  </h3>
+  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+  12 Total Beats • Single Patrolman per Beat
+  </p>
+  </div>
+  </div>
+  <span className="px-2.5 py-1 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-lg text-xs font-mono font-bold">
+  {dayPatrols.filter(p => p.isFilled && p.patrolmanName && !p.patrolmanName.includes('Vacant')).length}/12 Filled
+  </span>
+  </div>
 
- <div className="overflow-x-auto">
- <table className="w-full text-left text-xs border-collapse">
- <thead>
- <tr className="bg-[#e8f1fb] text-[#0f2b5c] font-black border-b border-slate-200">
- <th className="py-2.5 px-2.5">BEAT</th>
- <th className="py-2.5 px-2.5">PATROLMAN NAME</th>
- <th className="py-2.5 px-2.5">ROUTE / JURISDICTION</th>
- <th className="py-2.5 px-2.5">CONTACT</th>
- <th className="py-2.5 px-2.5">REST DAY</th>
- <th className="py-2.5 px-2.5 text-right">ACTION</th>
- </tr>
- </thead>
- <tbody className="divide-y divide-slate-200 font-medium text-slate-800">
- {dayPatrols.map((pt, idx) => {
- const isVacant = pt.status === 'VACANT' || !pt.isFilled || (pt.patrolmanName || '').toLowerCase().includes('vacant');
- return (
- <tr key={pt.id} className={idx % 2 === 0 ? 'bg-white hover:bg-amber-50/30' : 'bg-slate-50/70 hover:bg-amber-50/30'}>
- <td className="py-2.5 px-2.5 font-mono font-bold whitespace-nowrap">
- <span className={`px-2 py-0.5 rounded text-xs border ${
- isVacant
- ? 'bg-red-50 text-red-700 border-red-300'
- : 'bg-blue-50 text-blue-800 border-blue-200'
- }`}>
- {pt.beatCode}
- </span>
- </td>
- <td className={`py-2.5 px-2.5 font-bold whitespace-nowrap ${isVacant ? 'text-red-600' : 'text-slate-900'}`}>
- {isVacant ? (
- '🚨 Vacant (Unassigned)'
- ) : (
- <button
- type="button"
- onClick={() => setSelectedStaffForIdModal({
- name: pt.patrolmanName || '',
- awpoId: pt.patrolmanStaffId || '',
- mobileNo: pt.patrolmanPhone || '',
- post: 'Security Patrolman (Day)',
- beatCode: pt.beatCode,
- sectionCode: pt.sectionCode,
- fromKm: pt.fromKm,
- toKm: pt.toKm,
- category: 'Ex-Serviceman'
- })}
- className="text-slate-900 hover:text-blue-600 hover:underline text-left font-bold"
- title="Click to view full DFCCIL Staff ID"
- >
- {pt.patrolmanName}
- </button>
- )}
- {pt.patrolmanStaffId && (
- <span className="block text-[10px] font-mono text-slate-500 font-normal">
- {pt.patrolmanStaffId}
- </span>
- )}
- </td>
- <td className="py-2.5 px-2.5 text-slate-600 text-[11px] whitespace-nowrap">
- <div className="font-semibold text-slate-700">{pt.sectionCode || `IMSD SMUN ${pt.beatCode}`}</div>
- <div className="font-mono text-[10px] text-slate-500">Km {pt.fromKm?.toFixed(3)} – {pt.toKm?.toFixed(3)}</div>
- </td>
- <td className="py-2.5 px-2.5 font-mono whitespace-nowrap">
- {pt.patrolmanPhone ? (
- <a href={`tel:${pt.patrolmanPhone}`} className="text-blue-700 hover:underline flex items-center gap-1 font-bold">
- <span>📞</span>
- <span>{pt.patrolmanPhone}</span>
- </a>
- ) : (
- <span className="text-slate-400">-</span>
- )}
- </td>
- <td className="py-2.5 px-2.5 text-slate-600 whitespace-nowrap text-xs">
- {pt.restDay || 'Sunday'}
- </td>
- <td className="py-2.5 px-2.5 text-right whitespace-nowrap">
- {isVacant ? (
- <button
- onClick={() => openAdvanceAllotForBeat(pt.beatCode, 'DAY', pt)}
- className="px-2.5 py-1 rounded-lg text-[11px] font-black bg-red-600 hover:bg-red-700 text-white shadow-sm transition inline-flex items-center gap-1 animate-pulse"
- >
- <span>🚨</span>
- <span>Assign Beat</span>
- </button>
- ) : (
- <div className="flex items-center justify-end gap-1.5">
- <button
- type="button"
- onClick={() => setSelectedStaffForIdModal({
- name: pt.patrolmanName || '',
- awpoId: pt.patrolmanStaffId || '',
- mobileNo: pt.patrolmanPhone || '',
- post: 'Security Patrolman (Day)',
- beatCode: pt.beatCode,
- sectionCode: pt.sectionCode,
- fromKm: pt.fromKm,
- toKm: pt.toKm,
- category: 'Ex-Serviceman'
- })}
- className="px-2 py-1 rounded-lg text-[11px] font-bold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition inline-flex items-center gap-0.5"
- title="View Official DFCCIL Staff ID"
- >
- <span>🪪</span>
- <span>ID</span>
- </button>
- <button
- onClick={() => openAdvanceAllotForBeat(pt.beatCode, 'DAY', pt)}
- className="px-2 py-1 rounded-lg text-[11px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition inline-flex items-center gap-1"
- title="Re-allot Beat"
- >
- <Edit className="w-3 h-3" />
- <span>Re-allot</span>
- </button>
- <button
- onClick={() => handleDeletePatrolShift(pt)}
- className="px-2 py-1 rounded-lg text-[11px] font-bold bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition inline-flex items-center gap-1"
- title="Unassign Patrolman & Mark Beat Vacant"
- >
- <Trash2 className="w-3 h-3" />
- <span>Unassign</span>
- </button>
- </div>
- )}
- </td>
- </tr>
- );
- })}
- </tbody>
- </table>
- </div>
- </div>
+  <div className="overflow-x-auto">
+  <table className="w-full text-left text-xs border-collapse">
+  <thead>
+  <tr className="bg-[#e8f1fb] dark:bg-slate-800 text-[#0f2b5c] dark:text-blue-300 font-black border-b border-slate-200 dark:border-slate-700">
+  <th className="py-2.5 px-2.5">BEAT</th>
+  <th className="py-2.5 px-2.5">PATROLMAN NAME</th>
+  <th className="py-2.5 px-2.5">ROUTE / JURISDICTION</th>
+  <th className="py-2.5 px-2.5">CONTACT</th>
+  <th className="py-2.5 px-2.5">REST DAY</th>
+  <th className="py-2.5 px-2.5 text-right">ACTION</th>
+  </tr>
+  </thead>
+  <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-medium text-slate-800 dark:text-slate-200">
+  {dayPatrols.map((pt, idx) => {
+  const isVacant = pt.status === 'VACANT' || !pt.isFilled || (pt.patrolmanName || '').toLowerCase().includes('vacant');
+  return (
+  <tr key={pt.id} className={idx % 2 === 0 ? 'bg-white dark:bg-slate-900 hover:bg-amber-50/30 dark:hover:bg-slate-800/60' : 'bg-slate-50/70 dark:bg-slate-850 hover:bg-amber-50/30 dark:hover:bg-slate-800/60'}>
+  <td className="py-2.5 px-2.5 font-mono font-bold whitespace-nowrap">
+  <span className={`px-2 py-0.5 rounded text-xs border ${
+  isVacant
+  ? 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border-red-300 dark:border-red-800'
+  : 'bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 border-blue-200 dark:border-blue-800'
+  }`}>
+  {pt.beatCode}
+  </span>
+  </td>
+  <td className={`py-2.5 px-2.5 font-bold whitespace-nowrap ${isVacant ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-white'}`}>
+  {isVacant ? (
+  '🚨 Vacant (Unassigned)'
+  ) : (
+  <button
+  type="button"
+  onClick={() => setSelectedStaffForIdModal({
+  name: pt.patrolmanName || '',
+  awpoId: pt.patrolmanStaffId || '',
+  mobileNo: pt.patrolmanPhone || '',
+  post: 'Security Patrolman (Day)',
+  beatCode: pt.beatCode,
+  sectionCode: pt.sectionCode,
+  fromKm: pt.fromKm,
+  toKm: pt.toKm,
+  category: 'Ex-Serviceman'
+  })}
+  className="text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-cyan-400 hover:underline text-left font-bold"
+  title="Click to view full DFCCIL Staff ID"
+  >
+  {pt.patrolmanName}
+  </button>
+  )}
+  {pt.patrolmanStaffId && (
+  <span className="block text-[10px] font-mono text-slate-500 dark:text-slate-400 font-normal">
+  {pt.patrolmanStaffId}
+  </span>
+  )}
+  </td>
+  <td className="py-2.5 px-2.5 text-slate-600 dark:text-slate-400 text-[11px] whitespace-nowrap">
+  <div className="font-semibold text-slate-700 dark:text-slate-300">{pt.sectionCode || `IMSD SMUN ${pt.beatCode}`}</div>
+  <div className="font-mono text-[10px] text-slate-500 dark:text-slate-400">Km {pt.fromKm?.toFixed(3)} – {pt.toKm?.toFixed(3)}</div>
+  </td>
+  <td className="py-2.5 px-2.5 font-mono whitespace-nowrap">
+  {pt.patrolmanPhone ? (
+  <a href={`tel:${pt.patrolmanPhone}`} className="text-blue-700 dark:text-cyan-400 hover:underline flex items-center gap-1 font-bold">
+  <span>📞</span>
+  <span>{pt.patrolmanPhone}</span>
+  </a>
+  ) : (
+  <span className="text-slate-400">-</span>
+  )}
+  </td>
+  <td className="py-2.5 px-2.5 text-slate-600 dark:text-slate-400 whitespace-nowrap text-xs">
+  {pt.restDay || 'Sunday'}
+  </td>
+  <td className="py-2.5 px-2.5 text-right whitespace-nowrap">
+  {isVacant ? (
+  <button
+  onClick={() => openAdvanceAllotForBeat(pt.beatCode, 'DAY', pt)}
+  className="px-2.5 py-1 rounded-lg text-[11px] font-black bg-red-600 hover:bg-red-700 text-white shadow-sm transition inline-flex items-center gap-1 animate-pulse"
+  >
+  <span>🚨</span>
+  <span>Assign Beat</span>
+  </button>
+  ) : (
+  <div className="flex items-center justify-end gap-1.5">
+  <button
+  type="button"
+  onClick={() => setSelectedStaffForIdModal({
+  name: pt.patrolmanName || '',
+  awpoId: pt.patrolmanStaffId || '',
+  mobileNo: pt.patrolmanPhone || '',
+  post: 'Security Patrolman (Day)',
+  beatCode: pt.beatCode,
+  sectionCode: pt.sectionCode,
+  fromKm: pt.fromKm,
+  toKm: pt.toKm,
+  category: 'Ex-Serviceman'
+  })}
+  className="px-2 py-1 rounded-lg text-[11px] font-bold bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 transition inline-flex items-center gap-0.5"
+  title="View Official DFCCIL Staff ID"
+  >
+  <span>🪪</span>
+  <span>ID</span>
+  </button>
+  <button
+  onClick={() => openAdvanceAllotForBeat(pt.beatCode, 'DAY', pt)}
+  className="px-2 py-1 rounded-lg text-[11px] font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 transition inline-flex items-center gap-1"
+  title="Re-allot Beat"
+  >
+  <Edit className="w-3 h-3" />
+  <span>Re-allot</span>
+  </button>
+  <button
+  onClick={() => handleDeletePatrolShift(pt)}
+  className="px-2 py-1 rounded-lg text-[11px] font-bold bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 transition inline-flex items-center gap-1"
+  title="Unassign Patrolman & Mark Beat Vacant"
+  >
+  <Trash2 className="w-3 h-3" />
+  <span>Unassign</span>
+  </button>
+  </div>
+  )}
+  </td>
+  </tr>
+  );
+  })}
+  </tbody>
+  </table>
+  </div>
+  </div>
  </div>
  </div>
  )}

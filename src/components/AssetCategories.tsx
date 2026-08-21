@@ -481,21 +481,21 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
     return (
       <div className="space-y-6 animate-fadeIn">
         {/* Top Header */}
-        <div className="bg-white border border-slate-200 p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl">
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-xl">
               <Layers className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-900 tracking-tight">Assets Categories</h2>
-              <p className="text-xs text-slate-500">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Assets Categories</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Categorized infrastructure telemetry across 88.679 Km (DFCCIL IMSD SMUN Unit)
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono px-3 py-1 bg-slate-50 border border-slate-200 text-slate-700 rounded-xl">
+            <span className="text-xs font-mono px-3 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl">
               8 Standard Asset Groups
             </span>
           </div>
@@ -513,7 +513,7 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
                   setFilterOption1('ALL');
                   setFilterOption2('ALL');
                 }}
-                className="bg-white hover:bg-slate-50 border border-slate-200 hover:border-blue-400 p-6 rounded-2xl flex flex-col items-center justify-center text-center space-y-3.5 transition group shadow-sm hover:shadow-md hover:-translate-y-0.5 min-h-[160px]"
+                className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 p-6 rounded-2xl flex flex-col items-center justify-center text-center space-y-3.5 transition group shadow-sm hover:shadow-md hover:-translate-y-0.5 min-h-[160px]"
               >
                 {/* Category Railway Icon Box */}
                 <div className={`w-14 h-14 rounded-2xl ${cat.iconBg} ${cat.iconColor} border ${cat.borderColor} flex items-center justify-center group-hover:scale-110 transition shadow-inner`}>
@@ -521,10 +521,10 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900 group-hover:text-blue-700 transition leading-snug">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition leading-snug">
                     {cat.title}
                   </h3>
-                  <p className="text-[11px] text-slate-500 font-mono mt-1">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-1">
                     {cat.countLabel}
                   </p>
                 </div>
@@ -534,14 +534,14 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
         </div>
 
         {/* Quick Corridor Jurisdiction Banner */}
-        <div className="p-4 bg-white border border-slate-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-600 shadow-sm">
+        <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-600 dark:text-slate-300 shadow-sm">
           <div className="flex items-center gap-2">
-            <Train className="w-4 h-4 text-blue-700 shrink-0" />
+            <Train className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
             <span>
               <strong>Main Line:</strong> Km 1167.210 to Km 1249.720 (82.510 Km) | <strong>Link Line:</strong> Km 1171.981 to Km 1178.150 (6.169 Km)
             </span>
           </div>
-          <div className="font-mono text-emerald-700 font-semibold shrink-0">
+          <div className="font-mono text-emerald-700 dark:text-emerald-400 font-semibold shrink-0">
             Total Corridor: 88.679 Km
           </div>
         </div>
@@ -558,24 +558,24 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
   return (
     <div className="space-y-6 animate-fadeIn">
       {/* Category Detail Header with Back Button */}
-      <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSelectedCategory(null)}
-              className="p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl border border-slate-300 transition flex items-center justify-center shrink-0"
+              className="p-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl border border-slate-300 dark:border-slate-700 transition flex items-center justify-center shrink-0"
               title="Back to Categories Grid"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold text-slate-900 tracking-tight">{currentCatMeta.title}</h2>
-                <span className="text-xs font-mono px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-md font-bold">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">{currentCatMeta.title}</h2>
+                <span className="text-xs font-mono px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-md font-bold">
                   {currentCatMeta.countLabel}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">{currentCatMeta.subtitle}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{currentCatMeta.subtitle}</p>
             </div>
           </div>
 
@@ -587,7 +587,7 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
                 placeholder="Search asset, Km, code..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-blue-600 focus:bg-white placeholder:text-slate-400"
+                className="w-full pl-9 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs focus:outline-none focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900 placeholder:text-slate-400"
               />
             </div>
           </div>
@@ -600,8 +600,8 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
       {selectedCategory === 'bridges' && (
         <div className="space-y-4">
           {/* Bridges Filters */}
-          <div className="flex flex-wrap items-center gap-2 bg-white p-3 rounded-xl border border-slate-200 text-xs shadow-sm">
-            <span className="text-slate-600 font-semibold flex items-center gap-1">
+          <div className="flex flex-wrap items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-xs shadow-sm">
+            <span className="text-slate-600 dark:text-slate-400 font-semibold flex items-center gap-1">
               <Filter className="w-3.5 h-3.5" /> Type:
             </span>
             {['ALL', 'FOB', 'ROB', 'RUB', 'MAJOR', 'MINOR'].map(t => (
@@ -611,22 +611,22 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
                 className={`px-2.5 py-1 rounded-lg font-medium transition ${
                   filterOption1 === t
                     ? 'bg-[#123b72] text-white shadow-sm'
-                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
+                    : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
                 }`}
               >
                 {t}
               </button>
             ))}
 
-            <span className="text-emerald-700 font-semibold ml-auto flex items-center gap-1 font-mono">
+            <span className="text-emerald-700 dark:text-emerald-400 font-semibold ml-auto flex items-center gap-1 font-mono">
               📍 GPS Coordinates verified for all 144 Bridges
             </span>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-800">
-                <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-600 border-b border-slate-200">
+              <table className="w-full text-left text-xs text-slate-800 dark:text-slate-200">
+                <thead className="bg-slate-50 dark:bg-slate-800/80 text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                   <tr>
                     <th className="p-3">#</th>
                     <th className="p-3">Bridge No</th>
@@ -639,15 +639,15 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
                     <th className="p-3 text-right">Details / Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 font-mono">
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-mono">
                   {filteredBridges.map((b, idx) => (
-                    <tr key={b.id} className="hover:bg-slate-50 transition font-sans">
+                    <tr key={b.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition font-sans">
                       <td className="p-3 text-slate-400 font-mono">{idx + 1}</td>
-                      <td className="p-3 font-bold text-slate-900 font-mono">
+                      <td className="p-3 font-bold text-slate-900 dark:text-white font-mono">
                         <button
                           type="button"
                           onClick={() => setSelectedBridgeForModal(b)}
-                          className="text-[#123b72] hover:underline font-bold font-mono text-left inline-flex items-center gap-1"
+                          className="text-[#123b72] dark:text-blue-400 hover:underline font-bold font-mono text-left inline-flex items-center gap-1"
                           title="Click to view full bridge details popup"
                         >
                           <span>🌉</span>
@@ -655,24 +655,24 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
                         </button>
                       </td>
                       <td className="p-3">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
                           {b.bridgeType || b.category}
                         </span>
                       </td>
-                      <td className="p-3 font-bold text-emerald-700 font-mono">
+                      <td className="p-3 font-bold text-emerald-700 dark:text-emerald-400 font-mono">
                         Km {Number(b.fromKm || b.km).toFixed(3)}
                       </td>
-                      <td className="p-3 text-cyan-800 font-mono">{b.oldBridgeNo || '-'}</td>
-                      <td className="p-3 text-slate-700">{b.spanConfiguration}</td>
-                      <td className="p-3 text-slate-600">{b.sectionCode}</td>
+                      <td className="p-3 text-cyan-800 dark:text-cyan-400 font-mono">{b.oldBridgeNo || '-'}</td>
+                      <td className="p-3 text-slate-700 dark:text-slate-300">{b.spanConfiguration}</td>
+                      <td className="p-3 text-slate-600 dark:text-slate-400">{b.sectionCode}</td>
                       <td className="p-3">
                         <a
                           href={`https://www.google.com/maps?q=${b.latitude},${b.longitude}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-[11px] font-semibold transition"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 rounded-lg text-[11px] font-semibold transition"
                         >
-                          <MapPin className="w-3 h-3 text-emerald-600" />
+                          <MapPin className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                           <span>Exact Pin ({b.latitude.toFixed(4)}, {b.longitude.toFixed(4)})</span>
                         </a>
                       </td>
@@ -680,7 +680,7 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
                         <button
                           type="button"
                           onClick={() => setSelectedBridgeForModal(b)}
-                          className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-[#123b72] border border-blue-200 rounded-lg text-xs font-semibold inline-flex items-center gap-1 transition active:scale-95 shadow-sm"
+                          className="px-2.5 py-1 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-[#123b72] dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-lg text-xs font-semibold inline-flex items-center gap-1 transition active:scale-95 shadow-sm"
                           title="View Official Bridge Popup Details"
                         >
                           <span>🌉</span>
@@ -689,7 +689,7 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
                         {isSuperAdmin && (
                           <button
                             onClick={() => handleOpenEdit('bridges', b)}
-                            className="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs"
+                            className="p-1.5 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-lg text-xs"
                             title="Edit Bridge"
                           >
                             <Edit className="w-3.5 h-3.5" />
@@ -710,9 +710,9 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
       ---------------------------------------------------------------------- */}
       {selectedCategory === 'points_crossings' && (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2 bg-white p-3 rounded-xl border border-slate-200 text-xs shadow-sm">
-            <span className="text-slate-600 font-semibold flex items-center gap-1">
-              <Train className="w-3.5 h-3.5 text-[#123b72]" /> Station:
+          <div className="flex flex-wrap items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-xs shadow-sm">
+            <span className="text-slate-600 dark:text-slate-400 font-semibold flex items-center gap-1">
+              <Train className="w-3.5 h-3.5 text-[#123b72] dark:text-blue-400" /> Station:
             </span>
             {['ALL', 'SMUN', 'SBJN', 'NSIR', 'GVGN', 'KNNN', 'CHAN', 'SNL'].map(s => (
               <button
@@ -721,7 +721,7 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
                 className={`px-2.5 py-1 rounded-lg font-medium transition ${
                   filterOption1 === s
                     ? 'bg-[#123b72] text-white shadow-sm'
-                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
+                    : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
                 }`}
               >
                 {s}
@@ -729,10 +729,10 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
             ))}
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-800">
-                <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-600 border-b border-slate-200">
+              <table className="w-full text-left text-xs text-slate-800 dark:text-slate-200">
+                <thead className="bg-slate-50 dark:bg-slate-800/80 text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                   <tr>
                     <th className="p-3">#</th>
                     <th className="p-3">Station</th>
@@ -746,29 +746,29 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
                     {isSuperAdmin && <th className="p-3 text-right">Action</th>}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 font-mono">
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-mono">
                   {filteredPC.map((p, idx) => (
-                    <tr key={p.id} className="hover:bg-slate-50 transition font-sans">
+                    <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition font-sans">
                       <td className="p-3 text-slate-400 font-mono">{idx + 1}</td>
-                      <td className="p-3 font-bold text-pink-700">{p.station}</td>
-                      <td className="p-3 font-bold text-slate-900 font-mono">{p.pointNo}</td>
-                      <td className="p-3 text-slate-700">{p.line || p.trackType}</td>
+                      <td className="p-3 font-bold text-pink-700 dark:text-pink-400">{p.station}</td>
+                      <td className="p-3 font-bold text-slate-900 dark:text-white font-mono">{p.pointNo}</td>
+                      <td className="p-3 text-slate-700 dark:text-slate-300">{p.line || p.trackType}</td>
                       <td className="p-3">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-50 border border-slate-200 text-slate-700">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
                           {p.angle || p.turnoutRatio}
                         </span>
                       </td>
-                      <td className="p-3 font-bold text-emerald-700 font-mono">
+                      <td className="p-3 font-bold text-emerald-700 dark:text-emerald-400 font-mono">
                         Km {Number(p.srjChainage || p.km).toFixed(3)}
                       </td>
-                      <td className="p-3 text-slate-700">{p.laidOn || p.operation}</td>
-                      <td className="p-3 text-slate-700">{p.hand}</td>
-                      <td className="p-3 text-slate-600">{p.traffic || '-'}</td>
+                      <td className="p-3 text-slate-700 dark:text-slate-300">{p.laidOn || p.operation}</td>
+                      <td className="p-3 text-slate-700 dark:text-slate-300">{p.hand}</td>
+                      <td className="p-3 text-slate-600 dark:text-slate-400">{p.traffic || '-'}</td>
                       {isSuperAdmin && (
                         <td className="p-3 text-right">
                           <button
                             onClick={() => handleOpenEdit('points_crossings', p)}
-                            className="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs"
+                            className="p-1.5 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-lg text-xs"
                             title="Edit Point"
                           >
                             <Edit className="w-3.5 h-3.5" />
@@ -789,9 +789,9 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
       ---------------------------------------------------------------------- */}
       {selectedCategory === 'curves' && (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2 bg-white p-3 rounded-xl border border-slate-200 text-xs shadow-sm">
-            <span className="text-slate-600 font-semibold flex items-center gap-1">
-              <Filter className="w-3.5 h-3.5 text-[#123b72]" /> Degree:
+          <div className="flex flex-wrap items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-xs shadow-sm">
+            <span className="text-slate-600 dark:text-slate-400 font-semibold flex items-center gap-1">
+              <Filter className="w-3.5 h-3.5 text-[#123b72] dark:text-blue-400" /> Degree:
             </span>
             {[
               { label: 'All Curves', val: 'ALL' },
@@ -804,7 +804,7 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
                 className={`px-2.5 py-1 rounded-lg font-medium transition ${
                   filterOption1 === d.val
                     ? 'bg-[#123b72] text-white shadow-sm'
-                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
+                    : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
                 }`}
               >
                 {d.label}
@@ -812,10 +812,10 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
             ))}
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-800">
-                <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-600 border-b border-slate-200">
+              <table className="w-full text-left text-xs text-slate-800 dark:text-slate-200">
+                <thead className="bg-slate-50 dark:bg-slate-800/80 text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                   <tr>
                     <th className="p-3">#</th>
                     <th className="p-3">Curve No</th>
@@ -830,24 +830,24 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
                     {isSuperAdmin && <th className="p-3 text-right">Action</th>}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 font-mono">
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-mono">
                   {filteredCurves.map((c, idx) => (
-                    <tr key={c.id} className="hover:bg-slate-50 transition font-sans">
+                    <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition font-sans">
                       <td className="p-3 text-slate-400 font-mono">{idx + 1}</td>
-                      <td className="p-3 font-bold text-blue-700 font-mono">#{c.curveNo}</td>
-                      <td className="p-3 font-bold text-emerald-700 font-mono">Km {c.fromKm.toFixed(3)}</td>
-                      <td className="p-3 text-slate-700 font-mono">{c.toKm.toFixed(3)}</td>
-                      <td className="p-3 text-slate-800">{c.lengthMeters} m</td>
-                      <td className="p-3 font-bold text-slate-900">{c.degree}°</td>
-                      <td className="p-3 text-cyan-800">{c.radiusMeters} m</td>
-                      <td className="p-3 text-slate-600">{c.versineMm || '-'}</td>
-                      <td className="p-3 text-slate-600">{c.cantMm ? `${c.cantMm} mm` : '-'}</td>
-                      <td className="p-3 text-slate-600">{c.yard || 'Main Line'}</td>
+                      <td className="p-3 font-bold text-blue-700 dark:text-blue-400 font-mono">#{c.curveNo}</td>
+                      <td className="p-3 font-bold text-emerald-700 dark:text-emerald-400 font-mono">Km {c.fromKm.toFixed(3)}</td>
+                      <td className="p-3 text-slate-700 dark:text-slate-300 font-mono">{c.toKm.toFixed(3)}</td>
+                      <td className="p-3 text-slate-800 dark:text-slate-200">{c.lengthMeters} m</td>
+                      <td className="p-3 font-bold text-slate-900 dark:text-white">{c.degree}°</td>
+                      <td className="p-3 text-cyan-800 dark:text-cyan-400">{c.radiusMeters} m</td>
+                      <td className="p-3 text-slate-600 dark:text-slate-400">{c.versineMm || '-'}</td>
+                      <td className="p-3 text-slate-600 dark:text-slate-400">{c.cantMm ? `${c.cantMm} mm` : '-'}</td>
+                      <td className="p-3 text-slate-600 dark:text-slate-400">{c.yard || 'Main Line'}</td>
                       {isSuperAdmin && (
                         <td className="p-3 text-right">
                           <button
                             onClick={() => handleOpenEdit('curves', c)}
-                            className="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs"
+                            className="p-1.5 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-lg text-xs"
                             title="Edit Curve"
                           >
                             <Edit className="w-3.5 h-3.5" />
@@ -871,26 +871,26 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
           {filteredLC.map((lc) => (
             <div
               key={lc.id}
-              className="bg-white border border-slate-200 p-5 rounded-2xl space-y-4 shadow-sm"
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl space-y-4 shadow-sm"
             >
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
                       LC Gate {lc.gateNo}
                     </span>
-                    <span className="text-xs text-slate-500 font-mono font-bold">
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-mono font-bold">
                       Class: {lc.classification}
                     </span>
                   </div>
-                  <h3 className="text-base font-bold text-slate-900 mt-1">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white mt-1">
                     Chainage: Km {lc.km.toFixed(3)} ({lc.fromStn} – {lc.toStn})
                   </h3>
                 </div>
                 {isSuperAdmin && (
                   <button
                     onClick={() => handleOpenEdit('level_crossings', lc)}
-                    className="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs"
+                    className="p-1.5 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-lg text-xs"
                     title="Edit Gate"
                   >
                     <Edit className="w-3.5 h-3.5" />
@@ -898,39 +898,39 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-3 rounded-xl border border-slate-200">
+              <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
                 <div>
-                  <span className="text-slate-500 block text-[10px]">TVU Census</span>
-                  <span className="text-slate-900 font-bold font-mono">{lc.tuv?.toLocaleString()}</span>
+                  <span className="text-slate-500 dark:text-slate-400 block text-[10px]">TVU Census</span>
+                  <span className="text-slate-900 dark:text-white font-bold font-mono">{lc.tuv?.toLocaleString()}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block text-[10px]">Interlocking</span>
-                  <span className="text-emerald-700 font-semibold">{lc.interlocked ? 'Interlocked' : 'Non-Interlocked'}</span>
+                  <span className="text-slate-500 dark:text-slate-400 block text-[10px]">Interlocking</span>
+                  <span className="text-emerald-700 dark:text-emerald-400 font-semibold">{lc.interlocked ? 'Interlocked' : 'Non-Interlocked'}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block text-[10px]">Telephone Connected</span>
-                  <span className="text-slate-800 font-semibold">{lc.telephoneLinkedStation}</span>
+                  <span className="text-slate-500 dark:text-slate-400 block text-[10px]">Telephone Connected</span>
+                  <span className="text-slate-800 dark:text-slate-200 font-semibold">{lc.telephoneLinkedStation}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block text-[10px]">Gatemen Roster</span>
-                  <span className="text-slate-800 font-semibold">{lc.gatemen?.length || 3} Staff</span>
+                  <span className="text-slate-500 dark:text-slate-400 block text-[10px]">Gatemen Roster</span>
+                  <span className="text-slate-800 dark:text-slate-200 font-semibold">{lc.gatemen?.length || 3} Staff</span>
                 </div>
               </div>
 
               {/* Gatemen List with Call & WhatsApp */}
               {lc.gatemen && lc.gatemen.length > 0 && (
-                <div className="space-y-2 pt-2 border-t border-slate-200">
-                  <h4 className="text-xs font-bold text-slate-700">Assigned Gatemen:</h4>
+                <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                  <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">Assigned Gatemen:</h4>
                   {lc.gatemen.map((gm: any, gIdx: number) => {
                     const cleanPhone = (gm.mobile || '').replace(/[^0-9]/g, '');
                     return (
                       <div
                         key={gIdx}
-                        className="bg-white p-2.5 rounded-xl border border-slate-200 flex items-center justify-between text-xs shadow-sm"
+                        className="bg-white dark:bg-slate-850 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs shadow-sm"
                       >
                         <div>
-                          <div className="font-bold text-slate-900">{gm.name}</div>
-                          <div className="text-[11px] text-slate-500">
+                          <div className="font-bold text-slate-900 dark:text-white">{gm.name}</div>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400">
                             ID: {gm.id} | {gm.residence}
                           </div>
                         </div>
@@ -945,13 +945,13 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
                               residence: gm.residence,
                               category: 'Outsource'
                             })}
-                            className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs border border-blue-200 font-semibold"
+                            className="px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded text-xs border border-blue-200 dark:border-blue-800 font-semibold"
                           >
                             🪪 ID
                           </button>
                           <a
                             href={`tel:${gm.mobile}`}
-                            className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-[11px] font-semibold transition flex items-center gap-1"
+                            className="px-2.5 py-1 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-lg text-[11px] font-semibold transition flex items-center gap-1"
                           >
                             <Phone className="w-3 h-3" />
                             <span>Call</span>
@@ -960,7 +960,7 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
                             href={`https://wa.me/91${cleanPhone.slice(-10)}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="px-2.5 py-1 bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 rounded-lg text-[11px] font-semibold transition flex items-center gap-1"
+                            className="px-2.5 py-1 bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 rounded-lg text-[11px] font-semibold transition flex items-center gap-1"
                           >
                             <MessageSquare className="w-3 h-3" />
                             <span>WA</span>
@@ -973,7 +973,7 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
               )}
 
               {lc.rg && (
-                <div className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 p-2 rounded-lg">
+                <div className="text-[11px] text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-2 rounded-lg">
                   <strong>Rest Giver:</strong> {lc.rg}
                 </div>
               )}
@@ -986,10 +986,10 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
           5. LWR / CWR (NO GPS Coordinates)
       ---------------------------------------------------------------------- */}
       {selectedCategory === 'lwr' && (
-        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-800">
-              <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-600 border-b border-slate-200">
+            <table className="w-full text-left text-xs text-slate-800 dark:text-slate-200">
+              <thead className="bg-slate-50 dark:bg-slate-800/80 text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                 <tr>
                   <th className="p-3">#</th>
                   <th className="p-3">LWR No</th>
@@ -1001,21 +1001,21 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
                   {isSuperAdmin && <th className="p-3 text-right">Action</th>}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 font-mono">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-mono">
                 {filteredLWR.map((l, idx) => (
-                  <tr key={l.id} className="hover:bg-slate-50 transition font-sans">
+                  <tr key={l.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition font-sans">
                     <td className="p-3 text-slate-400 font-mono">{idx + 1}</td>
-                    <td className="p-3 font-bold text-amber-800 font-mono">LWR #{l.lwrNo}</td>
-                    <td className="p-3 font-bold text-slate-900">{l.section}</td>
-                    <td className="p-3 font-bold text-emerald-700 font-mono">Km {l.fromKm.toFixed(3)}</td>
-                    <td className="p-3 text-slate-700 font-mono">{l.toKm.toFixed(3)}</td>
-                    <td className="p-3 text-cyan-800 font-bold">{l.lengthKm} Km</td>
-                    <td className="p-3 text-slate-700">{l.gapOn}</td>
+                    <td className="p-3 font-bold text-amber-800 dark:text-amber-400 font-mono">LWR #{l.lwrNo}</td>
+                    <td className="p-3 font-bold text-slate-900 dark:text-white">{l.section}</td>
+                    <td className="p-3 font-bold text-emerald-700 dark:text-emerald-400 font-mono">Km {l.fromKm.toFixed(3)}</td>
+                    <td className="p-3 text-slate-700 dark:text-slate-300 font-mono">{l.toKm.toFixed(3)}</td>
+                    <td className="p-3 text-cyan-800 dark:text-cyan-400 font-bold">{l.lengthKm} Km</td>
+                    <td className="p-3 text-slate-700 dark:text-slate-300">{l.gapOn}</td>
                     {isSuperAdmin && (
                       <td className="p-3 text-right">
                         <button
                           onClick={() => handleOpenEdit('lwr', l)}
-                          className="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs"
+                          className="p-1.5 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-lg text-xs"
                           title="Edit LWR"
                         >
                           <Edit className="w-3.5 h-3.5" />
@@ -1034,10 +1034,10 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
           6. SEJ (NO GPS Coordinates)
       ---------------------------------------------------------------------- */}
       {selectedCategory === 'sej' && (
-        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-800">
-              <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-600 border-b border-slate-200">
+            <table className="w-full text-left text-xs text-slate-800 dark:text-slate-200">
+              <thead className="bg-slate-50 dark:bg-slate-800/80 text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                 <tr>
                   <th className="p-3">#</th>
                   <th className="p-3">SEJ No</th>
@@ -1048,20 +1048,20 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
                   {isSuperAdmin && <th className="p-3 text-right">Action</th>}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 font-mono">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-mono">
                 {filteredSEJ.map((s, idx) => (
-                  <tr key={s.id} className="hover:bg-slate-50 transition font-sans">
+                  <tr key={s.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition font-sans">
                     <td className="p-3 text-slate-400 font-mono">{idx + 1}</td>
-                    <td className="p-3 font-bold text-pink-700 font-mono">SEJ #{s.sejNo}</td>
-                    <td className="p-3 font-bold text-slate-900">{s.section || s.sectionCode || ''}</td>
-                    <td className="p-3 font-bold text-emerald-700 font-mono">Km {(s.chainage ?? s.locationKm ?? 0).toFixed(3)}</td>
-                    <td className="p-3 text-slate-700">{s.drawingNo}</td>
-                    <td className="p-3 text-amber-800 font-semibold">{s.temperature}</td>
+                    <td className="p-3 font-bold text-pink-700 dark:text-pink-400 font-mono">SEJ #{s.sejNo}</td>
+                    <td className="p-3 font-bold text-slate-900 dark:text-white">{s.section || s.sectionCode || ''}</td>
+                    <td className="p-3 font-bold text-emerald-700 dark:text-emerald-400 font-mono">Km {(s.chainage ?? s.locationKm ?? 0).toFixed(3)}</td>
+                    <td className="p-3 text-slate-700 dark:text-slate-300">{s.drawingNo}</td>
+                    <td className="p-3 text-amber-800 dark:text-amber-300 font-semibold">{s.temperature}</td>
                     {isSuperAdmin && (
                       <td className="p-3 text-right">
                         <button
                           onClick={() => handleOpenEdit('sej', s)}
-                          className="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs"
+                          className="p-1.5 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-lg text-xs"
                           title="Edit SEJ"
                         >
                           <Edit className="w-3.5 h-3.5" />
@@ -1081,9 +1081,9 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
       ---------------------------------------------------------------------- */}
       {selectedCategory === 'defects' && (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2 bg-white p-3 rounded-xl border border-slate-200 text-xs shadow-sm">
-            <span className="text-slate-600 font-semibold flex items-center gap-1">
-              <AlertTriangle className="w-3.5 h-3.5 text-red-600" /> Severity:
+          <div className="flex flex-wrap items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-xs shadow-sm">
+            <span className="text-slate-600 dark:text-slate-400 font-semibold flex items-center gap-1">
+              <AlertTriangle className="w-3.5 h-3.5 text-red-600 dark:text-red-400" /> Severity:
             </span>
             {['ALL', 'CRITICAL', 'HIGH', 'MEDIUM'].map(sev => (
               <button
@@ -1092,7 +1092,7 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
                 className={`px-2.5 py-1 rounded-lg font-medium transition ${
                   filterOption1 === sev
                     ? 'bg-red-600 text-white shadow-sm'
-                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
+                    : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
                 }`}
               >
                 {sev}
@@ -1100,10 +1100,10 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
             ))}
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-800">
-                <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-600 border-b border-slate-200">
+              <table className="w-full text-left text-xs text-slate-800 dark:text-slate-200">
+                <thead className="bg-slate-50 dark:bg-slate-800/80 text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                   <tr>
                     <th className="p-3">#</th>
                     <th className="p-3">Chainage</th>
@@ -1116,22 +1116,22 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
                     {isSuperAdmin && <th className="p-3 text-right">Action</th>}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 font-mono">
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-mono">
                   {filteredDefects.map((d, idx) => (
-                    <tr key={d.id} className="hover:bg-slate-50 transition font-sans">
+                    <tr key={d.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition font-sans">
                       <td className="p-3 text-slate-400 font-mono">{idx + 1}</td>
-                      <td className="p-3 font-bold text-emerald-700 font-mono">{d.chainage}</td>
-                      <td className="p-3 font-bold text-cyan-800">{d.rail === 'RIGHT_RAIL' ? '(RR)' : '(LR)'}</td>
-                      <td className="p-3 text-slate-700">{d.trackLine}</td>
-                      <td className="p-3 text-slate-700">{d.location || d.sectionCode}</td>
+                      <td className="p-3 font-bold text-emerald-700 dark:text-emerald-400 font-mono">{d.chainage}</td>
+                      <td className="p-3 font-bold text-cyan-800 dark:text-cyan-400">{d.rail === 'RIGHT_RAIL' ? '(RR)' : '(LR)'}</td>
+                      <td className="p-3 text-slate-700 dark:text-slate-300">{d.trackLine}</td>
+                      <td className="p-3 text-slate-700 dark:text-slate-300">{d.location || d.sectionCode}</td>
                       <td className="p-3">
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                             d.severity === 'CRITICAL'
-                              ? 'bg-red-50 text-red-700 border border-red-200'
+                              ? 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800'
                               : d.severity === 'HIGH'
-                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                              : 'bg-blue-50 text-blue-700 border border-blue-200'
+                              ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
+                              : 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
                           }`}
                         >
                           {d.severity}
@@ -1141,19 +1141,19 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                             d.status === 'ATTENDED' || d.status === 'VERIFIED_CLOSED'
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : 'bg-amber-50 text-amber-700 border border-amber-200'
+                              ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                              : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
                           }`}
                         >
                           {d.status}
                         </span>
                       </td>
-                      <td className="p-3 text-slate-600 text-[11px] truncate max-w-[200px]">{d.actionTaken || '-'}</td>
+                      <td className="p-3 text-slate-600 dark:text-slate-400 text-[11px] truncate max-w-[200px]">{d.actionTaken || '-'}</td>
                       {isSuperAdmin && (
                         <td className="p-3 text-right">
                           <button
                             onClick={() => handleOpenEdit('defects', d)}
-                            className="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs"
+                            className="p-1.5 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-lg text-xs"
                             title="Edit Defect"
                           >
                             <Edit className="w-3.5 h-3.5" />
@@ -1177,7 +1177,7 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
           {/* Keymen Roster */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <span className="px-3 py-1 rounded-full text-xs font-bold bg-cyan-50 text-cyan-800 border border-cyan-200">
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-cyan-50 dark:bg-cyan-900/30 text-cyan-800 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-800">
                 👷 Assigned Keymen Beats ({keymen.length})
               </span>
             </div>
@@ -1187,44 +1187,44 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
                 return (
                   <div
                     key={km.id}
-                    className="bg-white border border-slate-200 p-4 rounded-2xl space-y-3 shadow-sm"
+                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl space-y-3 shadow-sm"
                   >
                     <div className="flex items-start justify-between">
                       <div>
-                        <span className="text-xs font-bold text-cyan-800">{km.beatNoText}</span>
-                        <h4 className="text-sm font-bold text-slate-900">{km.name}</h4>
-                        {km.fatherName && <p className="text-[11px] text-slate-500">S/o {km.fatherName}</p>}
+                        <span className="text-xs font-bold text-cyan-800 dark:text-cyan-400">{km.beatNoText}</span>
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">{km.name}</h4>
+                        {km.fatherName && <p className="text-[11px] text-slate-500 dark:text-slate-400">S/o {km.fatherName}</p>}
                       </div>
-                      <span className="px-2 py-0.5 bg-slate-50 border border-slate-200 text-slate-600 text-[10px] font-mono rounded font-bold">
+                      <span className="px-2 py-0.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-mono rounded font-bold">
                         AWPO: {km.awpoId || km.staffId}
                       </span>
                     </div>
 
-                    <div className="text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-200 space-y-1">
+                    <div className="text-xs bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1">
                       <div className="flex justify-between">
-                        <span className="text-slate-500">Coverage:</span>
-                        <span className="text-emerald-700 font-mono font-bold">{km.kmRange || `Km ${km.fromKm.toFixed(3)} → ${km.toKm.toFixed(3)}`}</span>
+                        <span className="text-slate-500 dark:text-slate-400">Coverage:</span>
+                        <span className="text-emerald-700 dark:text-emerald-400 font-mono font-bold">{km.kmRange || `Km ${km.fromKm.toFixed(3)} → ${km.toKm.toFixed(3)}`}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-500">Residence:</span>
-                        <span className="text-slate-700">{km.residence}, {km.district}</span>
+                        <span className="text-slate-500 dark:text-slate-400">Residence:</span>
+                        <span className="text-slate-700 dark:text-slate-300">{km.residence}, {km.district}</span>
                       </div>
                     </div>
 
                     {km.rg && (
-                      <div className="text-[10px] text-amber-800 bg-amber-50 border border-amber-200 p-1.5 rounded-lg">
+                      <div className="text-[10px] text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-1.5 rounded-lg">
                         <strong>Rest Giver:</strong> {km.rg}
                       </div>
                     )}
 
                     {/* Call, WhatsApp & ID Card Actions */}
-                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-                      <span className="text-xs font-mono font-bold text-slate-700">{km.mobileNo}</span>
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+                      <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">{km.mobileNo}</span>
                       <div className="flex items-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => setSelectedStaffForModal(km)}
-                          className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-semibold flex items-center gap-1"
+                          className="px-2 py-1 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-lg text-xs font-semibold flex items-center gap-1"
                           title="View DFCCIL Staff ID"
                         >
                           <span>🪪</span>
@@ -1232,7 +1232,7 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
                         </button>
                         <a
                           href={`tel:${km.mobileNo}`}
-                          className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center gap-1"
+                          className="px-2 py-1 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-lg text-xs font-semibold flex items-center gap-1"
                         >
                           <Phone className="w-3 h-3" />
                           <span>Call</span>
@@ -1241,7 +1241,7 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
                           href={`https://wa.me/91${cleanPhone.slice(-10)}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-2 py-1 bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 rounded-lg text-xs font-semibold flex items-center gap-1"
+                          className="px-2 py-1 bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 rounded-lg text-xs font-semibold flex items-center gap-1"
                         >
                           <MessageSquare className="w-3 h-3" />
                           <span>WA</span>
@@ -1258,7 +1258,7 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
           {bridgeWatchmen.length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
                   🌉 Bridge Watchmen ({bridgeWatchmen.length})
                 </span>
               </div>
@@ -1266,17 +1266,17 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
                 {bridgeWatchmen.map(w => {
                   const cleanPhone = (w.mobile || '').replace(/[^0-9]/g, '');
                   return (
-                    <div key={w.id} className="bg-white border border-slate-200 p-4 rounded-2xl space-y-2 shadow-sm">
+                    <div key={w.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl space-y-2 shadow-sm">
                       <div className="flex justify-between items-start">
                         <div>
-                          <h4 className="text-sm font-bold text-slate-900">{w.name}</h4>
-                          <p className="text-xs text-amber-700">{w.post}</p>
+                          <h4 className="text-sm font-bold text-slate-900 dark:text-white">{w.name}</h4>
+                          <p className="text-xs text-amber-700 dark:text-amber-400">{w.post}</p>
                         </div>
-                        <span className="text-[10px] font-mono text-slate-500 font-bold">ID: {w.staffId}</span>
+                        <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 font-bold">ID: {w.staffId}</span>
                       </div>
-                      <p className="text-[11px] text-slate-600">S/o {w.father} | {w.residence}, {w.district}</p>
-                      <div className="pt-2 flex items-center justify-between gap-2 border-t border-slate-100">
-                        <span className="text-xs font-mono font-bold text-slate-700">{w.mobile}</span>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-400">S/o {w.father} | {w.residence}, {w.district}</p>
+                      <div className="pt-2 flex items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-800">
+                        <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">{w.mobile}</span>
                         <div className="flex items-center gap-1.5">
                           <button
                             type="button"
@@ -1290,12 +1290,12 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
                               phone: w.mobile,
                               category: 'Ex-Serviceman'
                             })}
-                            className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs border border-blue-200 font-semibold"
+                            className="px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded text-xs border border-blue-200 dark:border-blue-800 font-semibold"
                           >
                             🪪 ID
                           </button>
-                          <a href={`tel:${w.mobile}`} className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs border border-emerald-200">Call</a>
-                          <a href={`https://wa.me/91${cleanPhone.slice(-10)}`} target="_blank" rel="noopener noreferrer" className="px-2 py-1 bg-green-50 text-green-700 rounded text-xs border border-green-200">WA</a>
+                          <a href={`tel:${w.mobile}`} className="px-2 py-1 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded text-xs border border-emerald-200 dark:border-emerald-800">Call</a>
+                          <a href={`https://wa.me/91${cleanPhone.slice(-10)}`} target="_blank" rel="noopener noreferrer" className="px-2 py-1 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded text-xs border border-green-200 dark:border-green-800">WA</a>
                         </div>
                       </div>
                     </div>
@@ -1308,23 +1308,23 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
           {/* Patrol Shifts */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <span className="px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200">
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800">
                 🚶 Patrol Shifts Roster ({patrolShifts.length})
               </span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {patrolShifts.map(p => (
-                <div key={p.id} className="bg-white border border-slate-200 p-4 rounded-2xl space-y-2 text-xs shadow-sm">
+                <div key={p.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl space-y-2 text-xs shadow-sm">
                   <div className="flex justify-between items-start">
-                    <strong className="text-slate-900 font-bold">{p.beatCode}: {p.patrolmanName || 'Vacant'}</strong>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${p.shiftType === 'DAY' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-purple-50 text-purple-700 border border-purple-200'}`}>
+                    <strong className="text-slate-900 dark:text-white font-bold">{p.beatCode}: {p.patrolmanName || 'Vacant'}</strong>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${p.shiftType === 'DAY' ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800' : 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800'}`}>
                       {p.shiftType === 'DAY' ? 'Day Patrol (15:00-23:00)' : 'Night Patrol (23:00-07:00)'}
                     </span>
                   </div>
-                  <div className="text-slate-500">Route: <span className="text-slate-800 font-medium">{p.route || `Km ${p.fromKm.toFixed(3)} → ${p.toKm.toFixed(3)}`}</span></div>
-                  <div className="text-slate-500">Rest Day: <span className="text-slate-800 font-medium">{p.restDay || '-'}</span></div>
-                  <div className="pt-2 border-t border-slate-100 flex justify-between items-center">
-                    <span className="font-mono text-slate-700 font-bold">{p.patrolmanPhone || '-'}</span>
+                  <div className="text-slate-500 dark:text-slate-400">Route: <span className="text-slate-800 dark:text-slate-200 font-medium">{p.route || `Km ${p.fromKm.toFixed(3)} → ${p.toKm.toFixed(3)}`}</span></div>
+                  <div className="text-slate-500 dark:text-slate-400">Rest Day: <span className="text-slate-800 dark:text-slate-200 font-medium">{p.restDay || '-'}</span></div>
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                    <span className="font-mono text-slate-700 dark:text-slate-300 font-bold">{p.patrolmanPhone || '-'}</span>
                     <div className="flex items-center gap-1.5">
                       {p.patrolmanName && !p.patrolmanName.includes('Vacant') && (
                         <button
@@ -1339,13 +1339,13 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
                             toKm: p.toKm,
                             category: 'Ex-Serviceman'
                           })}
-                          className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs border border-blue-200 font-semibold"
+                          className="px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded text-xs border border-blue-200 dark:border-blue-800 font-semibold"
                         >
                           🪪 ID
                         </button>
                       )}
                       {p.patrolmanPhone && (
-                        <a href={`tel:${p.patrolmanPhone}`} className="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded text-xs border border-emerald-200">Call</a>
+                        <a href={`tel:${p.patrolmanPhone}`} className="px-2.5 py-1 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded text-xs border border-emerald-200 dark:border-emerald-800">Call</a>
                       )}
                     </div>
                   </div>

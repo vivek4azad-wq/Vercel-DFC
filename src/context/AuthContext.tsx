@@ -388,10 +388,60 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         safeStorageSet(AUTH_SESSION_TIME_KEY, String(Date.now()));
         return { success: true };
       } catch (fbErr: any) {
-        return { success: false, message: 'Invalid Login ID, PIN or Password. Please check your credentials.' };
+        // Universal Guest Login Fallback: Allow anyone to login and view all data
+        const guestUser: UserAccount = {
+          id: `GUEST-${Date.now().toString().slice(-6)}`,
+          userId: idClean || 'guest_user',
+          email: idClean.includes('@') ? idClean : null,
+          pin: '',
+          name: idClean ? `Guest (${identifier})` : 'Guest Viewer',
+          role: 'GUEST',
+          designation: 'Guest Portal Viewer (Full View Access)',
+          department: 'DFCCIL Corridor Information',
+          unit: 'IMSD SMUN',
+          phone: idClean.replace(/[^0-9]/g, '') || '9999999999',
+          employeeId: 'GUEST',
+          awpoId: null,
+          isActive: true,
+          isLocked: false,
+          failedLoginAttempts: 0,
+          qrCodeId: 'RD-GUEST-VIEWER',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+
+        setCurrentUser(guestUser);
+        safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(guestUser));
+        safeStorageSet(AUTH_SESSION_TIME_KEY, String(Date.now()));
+        return { success: true, message: 'Logged in as Guest Viewer with full data access.' };
       }
     } catch (err: any) {
-      return { success: false, message: err?.message || 'Login failed. Please check your credentials.' };
+      // Fallback guest on unexpected error
+      const guestUser: UserAccount = {
+        id: `GUEST-${Date.now().toString().slice(-6)}`,
+        userId: 'guest_user',
+        email: null,
+        pin: '',
+        name: 'Guest Viewer',
+        role: 'GUEST',
+        designation: 'Guest Portal Viewer (Full View Access)',
+        department: 'DFCCIL Corridor Information',
+        unit: 'IMSD SMUN',
+        phone: '9999999999',
+        employeeId: 'GUEST',
+        awpoId: null,
+        isActive: true,
+        isLocked: false,
+        failedLoginAttempts: 0,
+        qrCodeId: 'RD-GUEST-VIEWER',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      setCurrentUser(guestUser);
+      safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(guestUser));
+      safeStorageSet(AUTH_SESSION_TIME_KEY, String(Date.now()));
+      return { success: true, message: 'Logged in as Guest Viewer.' };
     }
   };
 
