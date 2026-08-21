@@ -86,6 +86,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   ];
 
   const visibleTabs = React.useMemo(() => {
+    if (currentAppRole === 'APM' || currentAppRole === 'Admin' || role === 'SUPER_ADMIN') {
+      // 👑 Super Admin / APM: All tabs visible including Store ERP, Dashboard, Assets, etc.
+      return allTabs;
+    }
     if (currentAppRole === 'MTS' || role === 'STAFF') {
       // 🔒 Strictly visible for MTS: KM Finder, P.way, Staff, and own attendance
       return [
@@ -348,6 +352,22 @@ export const Navbar: React.FC<NavbarProps> = ({
                         <span>4. Store Keeper (Sh. Rameshwar)</span>
                       </div>
                       <span className="text-[9px] font-mono opacity-80 bg-amber-900/80 px-1.5 py-0.5 rounded">DEPOT</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        switchAppRole('Clerk');
+                        setIsThreeDotMenuOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 text-xs rounded-xl flex items-center justify-between transition ${
+                        currentAppRole === 'Clerk' ? 'bg-indigo-600 text-white font-bold' : 'hover:bg-blue-900/60 text-slate-200'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-indigo-400" />
+                        <span>5. Clerk (Attendance / Absentee)</span>
+                      </div>
+                      <span className="text-[9px] font-mono opacity-80 bg-indigo-900/80 px-1.5 py-0.5 rounded">CLERK</span>
                     </button>
                   </div>
 

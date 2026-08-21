@@ -39,7 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
   const { role, currentAppRole } = useAuth();
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isDgrFinderOpen, setIsDgrFinderOpen] = useState(false);
-  const isSuperAdmin = role === 'SUPER_ADMIN' || currentAppRole === 'APM';
+  const isSuperAdmin = role === 'SUPER_ADMIN' || (currentAppRole as string) === 'APM' || currentAppRole === 'Admin';
 
   const navItems = useMemo(() => {
     const masterNavItems = [
@@ -139,6 +139,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
         ]
       : [])
   ];
+
+    if (isSuperAdmin) {
+      // 👑 Super Admin / APM: Full unrestricted access to ALL master modules (Store, Analytics, Assets, etc.)
+      return masterNavItems;
+    }
 
     if (currentAppRole === 'Clerk') {
       // 🔒 Clerk: Only able to see absentee statement & mark present/absent accordingly

@@ -490,20 +490,119 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const switchAppRole = async (targetAppRole: AppUserRole) => {
-    const users = await db.getCollection<UserAccount>('users');
-    let target: UserAccount | undefined;
+    let target: UserAccount;
 
     if (targetAppRole === 'Admin' || targetAppRole === 'APM') {
-      target = users.find(u => u.role === 'SUPER_ADMIN') || users.find(u => u.id === 'EMP-101518');
-    } else if (targetAppRole === 'Sectional' || targetAppRole === 'Executive') {
-      target = users.find(u => u.role === 'OFFICER' && !u.designation?.toLowerCase().includes('clerk')) || users.find(u => u.role === 'OFFICER');
-    } else if (targetAppRole === 'Clerk') {
-      target = users.find(u => u.designation?.toLowerCase().includes('clerk') || u.name?.toLowerCase().includes('clerk')) || users.find(u => u.role === 'OFFICER');
-    } else if (targetAppRole === 'MTS') {
-      target = users.find(u => u.role === 'STAFF' && (u.name.toLowerCase().includes('pinki') || u.id === 'EMP-100780')) || users.find(u => u.role === 'STAFF');
+      target = {
+        id: 'EMP-101518',
+        userId: 'vkazad@dfcc.co.in',
+        email: 'vkazad@dfcc.co.in',
+        pin: '887267',
+        name: 'Shri Vivek Kumar Azad',
+        role: 'SUPER_ADMIN',
+        appRole: 'APM',
+        designation: 'Assistant Project Manager / Civil (APM)',
+        department: 'Civil Engineering / Project Management',
+        unit: 'IMSD SMUN',
+        phone: '8872671873',
+        employeeId: '101518',
+        awpoId: null,
+        isActive: true,
+        isLocked: false,
+        failedLoginAttempts: 0,
+        qrCodeId: 'RD-USR-EMP-101518',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
     } else if (targetAppRole === 'StoreKeeper') {
-      target = users.find(u => u.role === 'STORE_KEEPER') || users.find(u => u.id === 'EMP-STORE-001');
-    } else if (targetAppRole === 'Guest') {
+      target = {
+        id: 'EMP-STORE-001',
+        userId: 'store@dfcc.co.in',
+        email: 'store@dfcc.co.in',
+        pin: '123456',
+        name: 'Sh. Rameshwar (Store Incharge)',
+        role: 'STORE_KEEPER',
+        appRole: 'StoreKeeper',
+        designation: 'Store Keeper / Material Incharge',
+        department: 'Civil Engineering / Store & Depot',
+        unit: 'IMSD SMUN',
+        phone: '9876543220',
+        employeeId: 'STORE-001',
+        awpoId: null,
+        isActive: true,
+        isLocked: false,
+        failedLoginAttempts: 0,
+        qrCodeId: 'RD-STORE-001',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+    } else if (targetAppRole === 'Sectional' || targetAppRole === 'Executive') {
+      target = {
+        id: 'EMP-100619',
+        userId: 'arjun@dfcc.co.in',
+        email: 'arjun@dfcc.co.in',
+        pin: '123456',
+        name: 'Sh. Arjun Kumar',
+        role: 'OFFICER',
+        appRole: 'Sectional',
+        designation: 'Executive / P-Way',
+        department: 'Civil Engineering / P-Way',
+        unit: 'IMSD SMUN',
+        phone: '9876543210',
+        employeeId: '100619',
+        awpoId: null,
+        isActive: true,
+        isLocked: false,
+        failedLoginAttempts: 0,
+        qrCodeId: 'RD-USR-100619',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+    } else if (targetAppRole === 'Clerk') {
+      target = {
+        id: 'EMP-CLERK-001',
+        userId: 'clerk@dfcc.co.in',
+        email: 'clerk@dfcc.co.in',
+        pin: '123456',
+        name: 'Sh. Amit Kumar (Attendance Clerk)',
+        role: 'OFFICER',
+        appRole: 'Clerk',
+        designation: 'Office Clerk / Attendance Incharge',
+        department: 'Civil Engineering / Administration',
+        unit: 'IMSD SMUN',
+        phone: '9876543230',
+        employeeId: 'CLERK-001',
+        awpoId: null,
+        isActive: true,
+        isLocked: false,
+        failedLoginAttempts: 0,
+        qrCodeId: 'RD-CLERK-001',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+    } else if (targetAppRole === 'MTS') {
+      target = {
+        id: 'EMP-100780',
+        userId: 'pinki@dfcc.co.in',
+        email: 'pinki@dfcc.co.in',
+        pin: '123456',
+        name: 'Sh. Pinki (MTS / Gang)',
+        role: 'STAFF',
+        appRole: 'MTS',
+        designation: 'Multi-Tasking Staff (MTS)',
+        department: 'Civil Engineering / Track Maintenance',
+        unit: 'IMSD SMUN',
+        phone: '9876543240',
+        employeeId: '100780',
+        awpoId: null,
+        isActive: true,
+        isLocked: false,
+        failedLoginAttempts: 0,
+        qrCodeId: 'RD-MTS-001',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+    } else {
       target = {
         id: 'GUEST-001',
         userId: 'guest@dfcc.co.in',
@@ -516,28 +615,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         department: 'DFCCIL Safety',
         unit: 'IMSD SMUN',
         phone: '0000000000',
+        awpoId: null,
         isActive: true,
         isLocked: false,
+        failedLoginAttempts: 0,
         qrCodeId: 'RD-GUEST',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
     }
 
-    if (target) {
-      setCurrentUser(target);
-      safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(target));
-    } else {
-      await switchRole(
-        targetAppRole === 'APM'
-          ? 'SUPER_ADMIN'
-          : targetAppRole === 'Executive'
-          ? 'OFFICER'
-          : targetAppRole === 'StoreKeeper'
-          ? 'STORE_KEEPER'
-          : 'STAFF'
-      );
-    }
+    setCurrentUser(target);
+    safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(target));
+    safeStorageSet(AUTH_SESSION_TIME_KEY, String(Date.now()));
   };
 
   const switchRole = async (targetRole: UserRole) => {
@@ -644,8 +734,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const currentAppRole: AppUserRole = currentUser?.appRole
     ? (currentUser.appRole as AppUserRole)
-    : currentUser?.role === 'SUPER_ADMIN'
-    ? 'Admin'
+    : (currentUser?.role === 'SUPER_ADMIN' ||
+       currentUser?.email?.toLowerCase().includes('vkazad') ||
+       currentUser?.userId?.toLowerCase().includes('vkazad') ||
+       currentUser?.employeeId === '101518' ||
+       currentUser?.id === 'EMP-101518' ||
+       currentUser?.name?.includes('Vivek Kumar Azad'))
+    ? 'APM'
     : currentUser?.role === 'STORE_KEEPER'
     ? 'StoreKeeper'
     : currentUser?.role === 'OFFICER'
@@ -656,11 +751,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     ? 'MTS'
     : 'Guest';
 
+  const userEffectiveRole: UserRole | 'ANONYMOUS' =
+    ((currentUser?.id === 'EMP-101518' || currentUser?.userId === 'vkazad@dfcc.co.in' || currentUser?.email === 'vkazad@dfcc.co.in') && (!currentUser?.appRole || currentUser?.appRole === 'APM' || currentUser?.appRole === 'Admin'))
+      ? 'SUPER_ADMIN'
+      : (currentUser?.role || 'ANONYMOUS');
+
   return (
     <AuthContext.Provider
       value={{
         currentUser,
-        role: currentUser?.role || 'ANONYMOUS',
+        role: userEffectiveRole,
         currentAppRole,
         isAuthenticated: !!currentUser,
         isLoading,
