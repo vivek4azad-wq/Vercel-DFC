@@ -14,26 +14,40 @@ export interface GroqModelOption {
 
 export const GROQ_MODELS: GroqModelOption[] = [
   {
-    id: 'llama-3.3-70b-versatile',
-    name: 'Llama 3.3 70B Versatile',
-    speed: '⚡⚡ Lightning Fast (~280 t/s)',
-    contextWindow: '128k tokens',
-    description: 'State-of-the-art reasoning, railway engineering formulas & complex audits',
-    recommended: true
-  },
-  {
     id: 'llama-3.1-8b-instant',
     name: 'Llama 3.1 8B Instant',
     speed: '🚀 Ultra Fast (~750 t/s)',
     contextWindow: '128k tokens',
-    description: 'Instant answers for staff phone lookups, chainage checks & quick queries'
+    description: 'Instant answers for staff phone lookups, chainage checks & quick queries',
+    recommended: true
+  },
+  {
+    id: 'llama3-70b-8192',
+    name: 'Llama 3 70B (8k)',
+    speed: '⚡⚡ High Reasoning (~320 t/s)',
+    contextWindow: '8k tokens',
+    description: 'Deep reasoning on track audits, turnout calculations & complex railway rules'
+  },
+  {
+    id: 'llama3-8b-8192',
+    name: 'Llama 3 8B (8k)',
+    speed: '🚀 Instant (~600 t/s)',
+    contextWindow: '8k tokens',
+    description: 'Lightweight & stable standard Llama 3 model'
   },
   {
     id: 'mixtral-8x7b-32768',
     name: 'Mixtral 8x7B 32k',
     speed: '⚡ High Speed (~480 t/s)',
     contextWindow: '32k tokens',
-    description: 'Deep mathematical analysis & multilingual Hindi/English logs'
+    description: 'Multilingual Hindi/English & structured data analysis'
+  },
+  {
+    id: 'gemma2-9b-it',
+    name: 'Gemma 2 9B IT',
+    speed: '⚡ Fast (~450 t/s)',
+    contextWindow: '8k tokens',
+    description: 'Google-developed precision language model on Groq'
   }
 ];
 
@@ -54,7 +68,12 @@ export const setGroqApiKey = (key: string): void => {
 };
 
 export const getGroqModel = (): string => {
-  return localStorage.getItem(GROQ_MODEL_KEY) || 'llama-3.3-70b-versatile';
+  const saved = localStorage.getItem(GROQ_MODEL_KEY);
+  // Default to reliable llama-3.1-8b-instant if not set or if set to deprecated 3.3
+  if (!saved || saved === 'llama-3.3-70b-versatile') {
+    return 'llama-3.1-8b-instant';
+  }
+  return saved;
 };
 
 export const setGroqModel = (model: string): void => {
@@ -64,13 +83,13 @@ export const setGroqModel = (model: string): void => {
 /**
  * Quick connection test to verify the user's Groq API Key
  */
-export const testGroqConnection = async (testKey?: string): Promise<{ success: boolean; message: string; modelUsed: string }> => {
+export const testGroqConnection = async (testKey?: string, modelOverride?: string): Promise<{ success: boolean; message: string; modelUsed: string }> => {
   const key = (testKey || getGroqApiKey()).trim();
   if (!key) {
     return { success: false, message: 'Groq API Key is empty. Please enter your gsk_... key.', modelUsed: '' };
   }
 
-  const model = getGroqModel();
+  const model = modelOverride || getGroqModel();
   try {
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -91,9 +110,17 @@ export const testGroqConnection = async (testKey?: string): Promise<{ success: b
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
+      const errMsg = err?.error?.message || `HTTP ${res.status}: Connection failed`;
+
+      // Fallback: If model doesn't exist, try llama-3.1-8b-instant
+      if (model !== 'llama-3.1-8b-instant' && errMsg.toLowerCase().includes('does not exist')) {
+        setGroqModel('llama-3.1-8b-instant');
+        return testGroqConnection(key, 'llama-3.1-8b-instant');
+      }
+
       return {
         success: false,
-        message: err?.error?.message || `HTTP ${res.status}: Connection failed`,
+        message: errMsg,
         modelUsed: model
       };
     }
@@ -102,7 +129,7 @@ export const testGroqConnection = async (testKey?: string): Promise<{ success: b
     const reply = data?.choices?.[0]?.message?.content || 'Connected';
     return {
       success: true,
-      message: `Groq AI Connected successfully! (${reply.trim()})`,
+      message: `✓ Groq AI Connected successfully! (${reply.trim()} via ${model})`,
       modelUsed: model
     };
   } catch (error: any) {
@@ -128,7 +155,9 @@ export const queryGroqChat = async (
     throw new Error('Groq API Key not found. Please click "🔑 Configure Groq API Key" to add your free key.');
   }
 
-  const model = customModel || getGroqModel();
+  let model = customModel || getGroqModel();
+  if (model === 'llama-3.3-70b-versatile') model = 'llama-3.1-8b-instant';
+
   const startTime = performance.now();
 
   const systemPrompt = `You are the Official DFCCIL Railway Senior Section Engineer & P-Way Intelligence AI Assistant for Section KRJN–SMUN–SBJN–NSIR–SNL (Km 1167.210 to 1249.720, Total 88.679 Km under IMSD SMUN HQ).
@@ -151,7 +180,7 @@ RESPONSE GUIDELINES:
     { role: 'user', content: userPrompt }
   ];
 
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  let response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${key}`,
@@ -165,13 +194,35 @@ RESPONSE GUIDELINES:
     })
   });
 
-  const durationMs = Math.round(performance.now() - startTime);
-
+  // Automatic Fallback to llama-3.1-8b-instant if model not found
   if (!response.ok) {
     const errJson = await response.json().catch(() => ({}));
-    throw new Error(errJson?.error?.message || `HTTP ${response.status}: Groq API request failed`);
+    const errMsg = errJson?.error?.message || '';
+    if (model !== 'llama-3.1-8b-instant' && errMsg.toLowerCase().includes('does not exist')) {
+      model = 'llama-3.1-8b-instant';
+      setGroqModel('llama-3.1-8b-instant');
+      response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${key}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model,
+          messages,
+          temperature: 0.2,
+          max_tokens: 1500
+        })
+      });
+    }
+
+    if (!response.ok) {
+      const errRetry = await response.json().catch(() => ({}));
+      throw new Error(errRetry?.error?.message || `HTTP ${response.status}: Groq API request failed`);
+    }
   }
 
+  const durationMs = Math.round(performance.now() - startTime);
   const data = await response.json();
   const candidateText = data?.choices?.[0]?.message?.content;
   if (!candidateText) {
