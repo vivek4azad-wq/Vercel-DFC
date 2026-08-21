@@ -21,7 +21,14 @@ import {
   BookOpen,
   ArrowLeft
 } from 'lucide-react';
+import { IMSD_TALLY_GZIP_BASE64 } from '../data/imsdTallyLedgerCompressed.ts';
 import type { StoreItemRecord, StoreTransactionRecord } from '../types/index.ts';
+
+const decodeTallyData = async (): Promise<{ items: any[]; transactions: any[] }> => {
+  const compressed = Uint8Array.from(atob(IMSD_TALLY_GZIP_BASE64), char => char.charCodeAt(0));
+  const stream = new Blob([compressed]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return JSON.parse(await new Response(stream).text());
+};
 
 interface StoreItemPublicQRViewProps {
   itemId: string;
@@ -46,166 +53,112 @@ export const StoreItemPublicQRView: React.FC<StoreItemPublicQRViewProps> = ({
           db.getCollection<StoreTransactionRecord>('store_transactions')
         ]);
 
-        const DEFAULT_CATALOG: StoreItemRecord[] = [
-          {
-            id: 'STR-001',
-            itemCode: 'PWAY-ERC-MK3',
-            priceListCode: '01',
-            tallyCodeNo: '2',
-            accountsFileNo: '3190',
-            name: 'Elastic Rail Clip (ERC Mk-III)',
-            category: 'P.way material',
-            categoryLabel: 'P.way material',
-            specification: 'RDSO/T-3701, 60kg Rail Track Fastener',
-            unit: 'Nos',
-            currentStock: 12500,
-            minBufferThreshold: 2000,
-            location: 'Bay A1 - Fitting Yard, IMSD SMUN',
-            inwardTotal: 15000,
-            outwardTotal: 2500,
-            unitRate: 115,
-            lastReceivedDate: '2024-09-15',
-            supplier: 'SAIL Bhilai Steel Plant'
-          },
-          {
-            id: 'STR-002',
-            itemCode: 'PWAY-GRSP-6MM',
-            priceListCode: '02',
-            tallyCodeNo: '3',
-            accountsFileNo: '3191',
-            name: 'Grooved Rubber Sole Plate (GRSP 6mm)',
-            category: 'P.way material',
-            categoryLabel: 'P.way material',
-            specification: 'IRS T-47, 60kg Sleeper Pad',
-            unit: 'Nos',
-            currentStock: 8400,
-            minBufferThreshold: 1500,
-            location: 'Bay A2 - Pad Stacks, IMSD SMUN',
-            inwardTotal: 10000,
-            outwardTotal: 1600,
-            unitRate: 48,
-            lastReceivedDate: '2024-09-10',
-            supplier: 'Calcast Ferrous Ltd.'
-          },
-          {
-            id: 'STR-49',
-            itemCode: '49',
-            priceListCode: '49',
-            tallyCodeNo: '1',
-            accountsFileNo: '3195',
-            name: 'Crockery Items',
-            category: 'T&P',
-            categoryLabel: 'T&P (Tools & Plant)',
-            specification: 'IMSD Office & Inspection Crockery Set',
-            unit: 'Nos',
-            currentStock: 6,
-            minBufferThreshold: 2,
-            location: 'IMSD SMUN HQ Central Store',
-            inwardTotal: 6,
-            outwardTotal: 0,
-            unitRate: 450,
-            lastReceivedDate: '2024-09-18',
-            supplier: 'CIODW Ami Bartan Bhandar'
-          },
-          {
-            id: 'STR-003',
-            itemCode: 'PWAY-LINER-GFN',
-            priceListCode: '03',
-            tallyCodeNo: '4',
-            accountsFileNo: '3192',
-            name: 'GFN Liners 60kg (Glass Filled Nylon)',
-            category: 'P.way material',
-            categoryLabel: 'P.way material',
-            specification: 'RDSO/T-3706, 60kg Rail Liners',
-            unit: 'Nos',
-            currentStock: 9200,
-            minBufferThreshold: 1800,
-            location: 'Bay A3 - Liner Bin',
-            inwardTotal: 11000,
-            outwardTotal: 1800,
-            unitRate: 32,
-            lastReceivedDate: '2024-09-12',
-            supplier: 'Precision Polymers'
-          },
-          {
-            id: 'STR-004',
-            itemCode: 'PWAY-SEJ-SET',
-            priceListCode: '04',
-            tallyCodeNo: '5',
-            accountsFileNo: '3193',
-            name: 'Switch Expansion Joint (SEJ 80mm Gap)',
-            category: 'P.way material',
-            categoryLabel: 'P.way material',
-            specification: 'RDSO/T-4165, 60kg SEJ Assembly',
-            unit: 'Sets',
-            currentStock: 14,
-            minBufferThreshold: 4,
-            location: 'Yard Bay C - Heavy Steel',
-            inwardTotal: 16,
-            outwardTotal: 2,
-            unitRate: 85000,
-            lastReceivedDate: '2024-08-28',
-            supplier: 'Jindal Steel & Power'
+        let finalItems = storeItems || [];
+        let finalTxns = allTxns || [];
+
+        // If items are missing or fresh session, decode authentic 196 tally items
+        if (!finalItems || finalItems.length < 150) {
+          try {
+            const tallyData = await decodeTallyData();
+            finalItems = tallyData.items.map((tItem: any, idx: number): StoreItemRecord => {
+              const code = tItem.sapMaterial || `IMSD-${tItem.ledgerPage}`;
+              const cat = tItem.source === 'C&P Material' ? 'C&P'
+                : tItem.source === 'T&P Material' ? 'T&P'
+                : tItem.source === 'P.Way Material' ? 'P.way material'
+                : tItem.source;
+
+              return {
+                id: `STR-IMSD-${idx + 1}`,
+                itemCode: code,
+                priceListCode: code,
+                tallyCodeNo: tItem.ledgerPage,
+                accountsFileNo: tItem.ledgerPage,
+                name: tItem.itemName,
+                category: cat,
+                categoryLabel: tItem.source,
+                specification: tItem.sapDescription ? `${tItem.sapDescription} (Page: ${tItem.ledgerPage})` : `Ledger Page: ${tItem.ledgerPage} • ${tItem.source}`,
+                unit: tItem.sapUom || 'Nos',
+                currentStock: tItem.closingBalance ?? 0,
+                minBufferThreshold: 5,
+                location: 'IMSD SMUN Central Store',
+                inwardTotal: tItem.totalReceipt || 0,
+                outwardTotal: tItem.totalIssue || 0,
+                unitRate: 100,
+                lastReceivedDate: '2024-09-18',
+                lastIssuedDate: '2024-09-20',
+                supplier: 'DFCCIL IMSD Depot',
+                remarks: `${tItem.source} (Page ${tItem.ledgerPage}) • SAP: ${tItem.sapMaterial || 'Pending'}`
+              };
+            });
+
+            if (!finalTxns || finalTxns.length === 0) {
+              finalTxns = tallyData.transactions.map((tTxn: any, idx: number): StoreTransactionRecord => {
+                const code = tTxn.sapMaterial || `IMSD-${tTxn.ledgerPage}`;
+                const isOutward = (tTxn.issue || 0) > 0 || (tTxn.transfer || 0) > 0;
+                const qty = (tTxn.receipt || 0) > 0 ? tTxn.receipt! : ((tTxn.issue || 0) > 0 ? tTxn.issue! : (tTxn.transfer || 0));
+
+                return {
+                  id: `STXN-${idx + 1}`,
+                  date: tTxn.date || '2024-01-01',
+                  type: isOutward ? 'OUTWARD' : 'INWARD',
+                  itemId: `STR-IMSD-${idx + 1}`,
+                  itemCode: code,
+                  itemName: tTxn.itemName,
+                  quantity: qty,
+                  unit: tTxn.sapUom || 'Nos',
+                  referenceNo: tTxn.voucher || `VCH-${idx + 1}`,
+                  issuedToOrReceivedFrom: tTxn.party || 'IMSD SMUN Section',
+                  purposeOrSection: tTxn.purpose || 'Official Railway Maintenance',
+                  authorizedBy: 'Store Keeper / APM',
+                  receiptQty: tTxn.receipt || undefined,
+                  transferQty: tTxn.transfer || undefined,
+                  issueQty: tTxn.issue || undefined,
+                  balanceQty: tTxn.balance ?? 0,
+                  tallyPageNo: tTxn.ledgerPage,
+                  createdAt: tTxn.date ? `${tTxn.date}T10:00:00Z` : new Date().toISOString()
+                };
+              });
+            }
+          } catch (e) {
+            console.error('Error decoding tally data in StoreItemPublicQRView:', e);
           }
-        ];
+        }
 
-        // Combine live DB records + fallback default catalog
-        const allInventory = [...(storeItems || []), ...(storeInv || []), ...DEFAULT_CATALOG];
+        const allInventory = [...finalItems, ...(storeInv || [])];
+        const cleanId = decodeURIComponent(String(itemId || '')).trim().toLowerCase();
 
-        const cleanId = String(itemId || '').trim().toLowerCase();
         let target = allInventory.find(
           i => (i.id && String(i.id).toLowerCase() === cleanId) ||
                (i.itemCode && String(i.itemCode).toLowerCase() === cleanId) ||
                (i.priceListCode != null && String(i.priceListCode).toLowerCase() === cleanId) ||
                (i.tallyCodeNo != null && String(i.tallyCodeNo).toLowerCase() === cleanId) ||
+               (i.name && String(i.name).toLowerCase() === cleanId) ||
                (i.name && String(i.name).toLowerCase().includes(cleanId))
         );
 
-        // If not found in standard catalog, dynamically synthesize valid material card
-        if (!target && itemId) {
-          target = {
-            id: itemId,
-            itemCode: itemId,
-            priceListCode: '01',
-            tallyCodeNo: '1',
-            accountsFileNo: '3190',
-            name: itemId.replace(/[-_]/g, ' ').toUpperCase(),
-            category: 'P.way material',
-            categoryLabel: 'P.way material',
-            specification: 'DFCCIL Standard Track Material / Store Inventory',
-            unit: 'Nos',
-            currentStock: 100,
-            minBufferThreshold: 20,
-            location: 'IMSD SMUN Central Store',
-            inwardTotal: 100,
-            outwardTotal: 0,
-            unitRate: 150,
-            lastReceivedDate: new Date().toISOString().split('T')[0],
-            supplier: 'DFCCIL IMSD SMUN Depot'
-          };
-        }
-
         if (target) {
-          const relatedTxns = (allTxns || [])
-            .filter(t => t.itemId === target!.id || t.itemName === target!.name || (t as any).itemCode === target!.itemCode)
+          const relatedTxns = (finalTxns || [])
+            .filter(t =>
+              t.itemId === target!.id ||
+              (t.itemCode && String(t.itemCode).toLowerCase() === String(target!.itemCode).toLowerCase()) ||
+              (t.tallyPageNo && String(t.tallyPageNo) === String(target!.tallyCodeNo)) ||
+              (t.itemName && String(t.itemName).toLowerCase() === String(target!.name).toLowerCase())
+            )
             .sort((a, b) => new Date(b.date || b.createdAt).getTime() - new Date(a.date || a.createdAt).getTime());
 
           let dynamicInward = 0;
           let dynamicOutward = 0;
           relatedTxns.forEach(t => {
             const qty = Number(t.quantity) || 0;
-            if (t.type === 'INWARD') dynamicInward += qty;
-            else if (t.type === 'OUTWARD') dynamicOutward += qty;
+            if (t.type === 'INWARD' || t.receiptQty) dynamicInward += (Number(t.receiptQty) || qty);
+            else if (t.type === 'OUTWARD' || t.issueQty || t.transferQty) dynamicOutward += (Number(t.issueQty) || Number(t.transferQty) || qty);
           });
-
-          const opening = target.openingStock != null ? Number(target.openingStock) : ((target.inwardTotal != null && target.outwardTotal != null) ? target.inwardTotal - target.outwardTotal : target.currentStock);
-          const computedCurrentStock = (opening || 0) + (dynamicInward > 0 ? (dynamicInward - dynamicOutward) : 0);
 
           const liveItem: StoreItemRecord = {
             ...target,
-            inwardTotal: dynamicInward > 0 ? dynamicInward : (target.inwardTotal || 0),
-            outwardTotal: dynamicOutward > 0 ? dynamicOutward : (target.outwardTotal || 0),
-            currentStock: (dynamicInward > 0 || dynamicOutward > 0) ? computedCurrentStock : target.currentStock
+            inwardTotal: target.inwardTotal || dynamicInward,
+            outwardTotal: target.outwardTotal || dynamicOutward,
+            currentStock: target.currentStock
           };
 
           setItem(liveItem);

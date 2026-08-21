@@ -848,11 +848,23 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
   }, [patrolList, searchQuery]);
 
  const vacantPatrols = useMemo(() => {
- const all = [...dayPatrols, ...nightPatrols];
- return all.filter(
- p => p.status === 'VACANT' || !p.isFilled || (p.patrolmanName || '').toLowerCase().includes('vacant')
- );
- }, [dayPatrols, nightPatrols]);
+    const all = [...dayPatrols, ...nightPatrols];
+    return all.filter(
+      p => p.status === 'VACANT' || !p.isFilled || (p.patrolmanName || '').toLowerCase().includes('vacant')
+    );
+  }, [dayPatrols, nightPatrols]);
+
+  // Filter ONLY Patrolman staff for Advance Beat Allotment dropdown
+  const patrolmanOnlyStaff = useMemo(() => {
+    return staffList
+      .filter(s => {
+        const post = (s.post || s.designation || '').toLowerCase();
+        const cat = (s.category || '').toLowerCase();
+        const duty = (s.dutyType ? String(s.dutyType) : '').toLowerCase();
+        return post.includes('patrol') || cat.includes('patrol') || duty.includes('patrol');
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [staffList]);
 
  const handlePhotoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -4309,22 +4321,22 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
  </div>
  </div>
 
- {advanceAllotData.staffMode === 'EXISTING' ? (
- <div>
- <select
- value={advanceAllotData.selectedStaffId}
- onChange={e => handleAdvanceStaffSelect(e.target.value, false)}
- className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900"
- >
- <option value="">-- Choose Existing Staff / Ex-Serviceman --</option>
- {staffList.map(s => (
- <option key={s.id} value={s.id}>
- {s.name} ({s.post}) • {s.awpoId || s.id}
- </option>
- ))}
- </select>
- </div>
- ) : (
+              {advanceAllotData.staffMode === 'EXISTING' ? (
+                <div>
+                  <select
+                    value={advanceAllotData.selectedStaffId}
+                    onChange={e => handleAdvanceStaffSelect(e.target.value, false)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 font-medium"
+                  >
+                    <option value="">-- Choose Existing Patrolman ({patrolmanOnlyStaff.length}) --</option>
+                    {patrolmanOnlyStaff.map(s => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({s.post}) • {s.awpoId || s.id}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
  <div>
  <input
  type="text"
@@ -4394,22 +4406,22 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
  </div>
  </div>
 
- {advanceAllotData.partnerMode === 'EXISTING' ? (
- <div>
- <select
- value={advanceAllotData.partnerStaffId}
- onChange={e => handleAdvanceStaffSelect(e.target.value, true)}
- className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900"
- >
- <option value="">-- Choose Patrol Partner --</option>
- {staffList.map(s => (
- <option key={s.id} value={s.id}>
- {s.name} ({s.post}) • {s.awpoId || s.id}
- </option>
- ))}
- </select>
- </div>
- ) : (
+                {advanceAllotData.partnerMode === 'EXISTING' ? (
+                  <div>
+                    <select
+                      value={advanceAllotData.partnerStaffId}
+                      onChange={e => handleAdvanceStaffSelect(e.target.value, true)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 font-medium"
+                    >
+                      <option value="">-- Choose Patrol Partner ({patrolmanOnlyStaff.length}) --</option>
+                      {patrolmanOnlyStaff.map(s => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} ({s.post}) • {s.awpoId || s.id}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
  <div>
  <input
  type="text"

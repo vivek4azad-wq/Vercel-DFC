@@ -28,6 +28,7 @@ import {
   CheckCircle2,
   Trash2,
   Edit,
+  Edit2,
   Clock,
   Building2,
   ShieldCheck,
@@ -198,6 +199,12 @@ export const StoreInventoryManager: React.FC = () => {
   const [reallocateDuplicateWarning, setReallocateDuplicateWarning] = useState<string | null>(null);
   const [reallocateSuccessMsg, setReallocateSuccessMsg] = useState<string | null>(null);
   const [isReallocating, setIsReallocating] = useState(false);
+
+  // Edit Material Item Master State
+  const [editingItem, setEditingItem] = useState<StoreItemRecord | null>(null);
+
+  // Edit Transaction / Voucher Entry State
+  const [editingTransaction, setEditingTransaction] = useState<StoreTransactionRecord | null>(null);
 
   const loadStoreData = async () => {
     setIsLoading(true);
@@ -437,6 +444,111 @@ export const StoreInventoryManager: React.FC = () => {
       loadStoreData();
     } catch (err: any) {
       alert(`Delete failed: ${err.message}`);
+    }
+  };
+
+  // Handle Save Edit Item
+  const handleSaveEditItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingItem) return;
+
+    try {
+      const updated: StoreItemRecord = {
+        ...editingItem,
+        currentStock: Number(editingItem.currentStock || 0),
+        minBufferThreshold: Number(editingItem.minBufferThreshold || 0),
+        unitRate: Number(editingItem.unitRate || 0),
+        categoryLabel: allCategories.find(c => c.id === editingItem.category)?.label || editingItem.category,
+        updatedAt: new Date().toISOString()
+      };
+
+      await db.updateDocument('store_items', editingItem.id, updated);
+      setEditingItem(null);
+      await loadStoreData();
+    } catch (err: any) {
+      alert(`Failed to update material: ${err.message}`);
+    }
+  };
+
+  // Handle Save Edit Transaction
+  const handleSaveEditTransaction = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTransaction) return;
+
+    try {
+      const oldTxn = transactions.find(t => t.id === editingTransaction.id);
+      const qtyNum = Number(editingTransaction.quantity) || 0;
+      const updatedTxn: StoreTransactionRecord = {
+        ...editingTransaction,
+        quantity: qtyNum,
+        receiptQty: editingTransaction.type === 'INWARD' ? qtyNum : undefined,
+        issueQty: editingTransaction.type === 'OUTWARD' ? qtyNum : undefined,
+        transferQty: editingTransaction.type === 'TRANSFER' ? qtyNum : undefined
+      };
+
+      await db.updateDocument('store_transactions', editingTransaction.id, updatedTxn);
+
+      // Re-adjust item stock if quantity or type changed
+      const targetItem = items.find(i => i.id === editingTransaction.itemId || i.name === editingTransaction.itemName || (i.itemCode && i.itemCode === (editingTransaction as any).itemCode));
+      if (targetItem && oldTxn) {
+        const oldQty = Number(oldTxn.quantity) || 0;
+        let stockDiff = 0;
+
+        if (oldTxn.type === 'INWARD') stockDiff -= oldQty;
+        else if (oldTxn.type === 'OUTWARD') stockDiff += oldQty;
+
+        if (editingTransaction.type === 'INWARD') stockDiff += qtyNum;
+        else if (editingTransaction.type === 'OUTWARD') stockDiff -= qtyNum;
+
+        const newStock = Math.max(0, targetItem.currentStock + stockDiff);
+        await db.updateDocument('store_items', targetItem.id, {
+          currentStock: newStock,
+          updatedAt: new Date().toISOString()
+        });
+      }
+
+      setEditingTransaction(null);
+      await loadStoreData();
+    } catch (err: any) {
+      alert(`Failed to save transaction: ${err.message}`);
+    }
+  };
+
+  // Handle Delete Transaction Entry
+  const handleDeleteTransaction = async (txn: StoreTransactionRecord) => {
+    if (!window.confirm(`⚠️ DELETE VOUCHER TRANSACTION ENTRY:\n\nAre you sure you want to delete voucher "${txn.referenceNo}"?\n• Material: ${txn.itemName}\n• Type: ${txn.type}\n• Quantity: ${txn.quantity} ${txn.unit || 'Nos'}\n\nThis will re-adjust the store inventory stock balance.`)) {
+      return;
+    }
+    try {
+      await db.deleteDocument('store_transactions', txn.id);
+
+      // Re-adjust item stock
+      const targetItem = items.find(i => i.id === txn.itemId || i.name === txn.itemName || (i.itemCode && i.itemCode === (txn as any).itemCode));
+      if (targetItem) {
+        const qty = Number(txn.quantity) || 0;
+        let newStock = targetItem.currentStock;
+        let newInward = targetItem.inwardTotal || 0;
+        let newOutward = targetItem.outwardTotal || 0;
+
+        if (txn.type === 'INWARD') {
+          newStock = Math.max(0, newStock - qty);
+          newInward = Math.max(0, newInward - qty);
+        } else if (txn.type === 'OUTWARD') {
+          newStock = newStock + qty;
+          newOutward = Math.max(0, newOutward - qty);
+        }
+
+        await db.updateDocument('store_items', targetItem.id, {
+          currentStock: newStock,
+          inwardTotal: newInward,
+          outwardTotal: newOutward,
+          updatedAt: new Date().toISOString()
+        });
+      }
+
+      await loadStoreData();
+    } catch (err: any) {
+      alert(`Delete transaction failed: ${err.message}`);
     }
   };
 
@@ -1280,6 +1392,15 @@ export const StoreInventoryManager: React.FC = () => {
                           </button>
 
                           <button
+                            onClick={() => setEditingItem(item)}
+                            className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900 text-indigo-800 dark:text-indigo-300 rounded-lg text-[11px] font-bold transition border border-indigo-200 dark:border-indigo-800 flex items-center gap-1 shadow-sm"
+                            title="Edit Item Master Details (Name, Stock, Buffer, Rate, Location, Category)"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                            <span>Edit</span>
+                          </button>
+
+                          <button
                             onClick={() => setSelectedItemForQR(item)}
                             className="px-2 py-1 bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-950/60 dark:hover:bg-cyan-900 text-cyan-800 dark:text-cyan-300 rounded-lg text-[11px] font-bold transition border border-cyan-200 dark:border-cyan-800 flex items-center gap-1 shadow-sm"
                             title="Generate & Print Dynamic QR Code for Bin Label"
@@ -1314,15 +1435,13 @@ export const StoreInventoryManager: React.FC = () => {
                             - Issue
                           </button>
 
-                          {isSuperAdmin && (
-                            <button
-                              onClick={() => handleDeleteItem(item)}
-                              className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/60 rounded-lg border border-red-200 dark:border-red-800 transition"
-                              title="Delete Material Record"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
+                          <button
+                            onClick={() => handleDeleteItem(item)}
+                            className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/60 rounded-lg border border-red-200 dark:border-red-800 transition"
+                            title="Delete Material Item Record"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -1453,6 +1572,7 @@ export const StoreInventoryManager: React.FC = () => {
                   <th className="p-3 border border-slate-300 dark:border-slate-700">स्थानांतरण<br/><span className="text-[10px] font-normal">Transfer</span></th>
                   <th className="p-3 border border-slate-300 dark:border-slate-700 bg-amber-50/50 dark:bg-amber-950/20">निर्गम<br/><span className="text-[10px] font-normal">Issues</span></th>
                   <th className="p-3 border border-slate-300 dark:border-slate-700 bg-blue-50/50 dark:bg-blue-950/20 font-black">शेष<br/><span className="text-[10px] font-normal">Balance</span></th>
+                  <th className="p-3 border border-slate-300 dark:border-slate-700">कार्रवाई<br/><span className="text-[10px] font-normal">Actions</span></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700 font-medium text-slate-800 dark:text-slate-200">
@@ -1468,6 +1588,7 @@ export const StoreInventoryManager: React.FC = () => {
                       <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono text-slate-500">0.00</td>
                       <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono text-slate-500">0.00</td>
                       <td className="p-3 border border-slate-300 dark:border-slate-700 text-red-600 font-black font-mono bg-blue-50/30">1.00</td>
+                      <td className="p-2 border border-slate-300 dark:border-slate-700 text-slate-400 text-[11px]">—</td>
                     </tr>
                     <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/40 text-center">
                       <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono">18-09-2024</td>
@@ -1478,6 +1599,7 @@ export const StoreInventoryManager: React.FC = () => {
                       <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono text-slate-500">0.00</td>
                       <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono text-slate-500">0.00</td>
                       <td className="p-3 border border-slate-300 dark:border-slate-700 text-red-600 font-black font-mono bg-blue-50/30">3.00</td>
+                      <td className="p-2 border border-slate-300 dark:border-slate-700 text-slate-400 text-[11px]">—</td>
                     </tr>
                     <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/40 text-center">
                       <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono">18-09-2024</td>
@@ -1488,6 +1610,7 @@ export const StoreInventoryManager: React.FC = () => {
                       <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono text-slate-500">0.00</td>
                       <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono text-slate-500">0.00</td>
                       <td className="p-3 border border-slate-300 dark:border-slate-700 text-red-600 font-black font-mono bg-blue-50/30">4.00</td>
+                      <td className="p-2 border border-slate-300 dark:border-slate-700 text-slate-400 text-[11px]">—</td>
                     </tr>
                     <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/40 text-center">
                       <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono">18-09-2024</td>
@@ -1498,6 +1621,7 @@ export const StoreInventoryManager: React.FC = () => {
                       <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono text-slate-500">0.00</td>
                       <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono text-slate-500">0.00</td>
                       <td className="p-3 border border-slate-300 dark:border-slate-700 text-red-600 font-black font-mono bg-blue-50/30">6.00</td>
+                      <td className="p-2 border border-slate-300 dark:border-slate-700 text-slate-400 text-[11px]">—</td>
                     </tr>
                   </>
                 ) : (
@@ -1518,6 +1642,26 @@ export const StoreInventoryManager: React.FC = () => {
                       </td>
                       <td className="p-3 border border-slate-300 dark:border-slate-700 text-red-600 font-black font-mono bg-blue-50/30">
                         {Math.max(0, Number(tx.balanceQty ?? selectedItemForTally.currentStock)).toFixed(2)}
+                      </td>
+                      <td className="p-2 border border-slate-300 dark:border-slate-700">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setEditingTransaction(tx)}
+                            className="p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/60 rounded border border-blue-200 dark:border-blue-800 transition"
+                            title="Edit Voucher Entry"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteTransaction(tx)}
+                            className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/60 rounded border border-red-200 dark:border-red-800 transition"
+                            title="Delete Voucher Entry"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -1545,6 +1689,7 @@ export const StoreInventoryManager: React.FC = () => {
                   <th className="p-3.5">{activeSubTab === 'inward' ? 'Received From / Vendor' : 'Issued To (Staff / Gang)'}</th>
                   <th className="p-3.5">Purpose / Section</th>
                   <th className="p-3.5">Authorized By</th>
+                  <th className="p-3.5 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
@@ -1570,6 +1715,26 @@ export const StoreInventoryManager: React.FC = () => {
                       <td className="p-3.5 font-semibold text-slate-800 dark:text-slate-200">{txn.issuedToOrReceivedFrom}</td>
                       <td className="p-3.5 text-slate-600 dark:text-slate-400 text-[11px]">{txn.purposeOrSection}</td>
                       <td className="p-3.5 font-mono text-slate-700 dark:text-slate-300">{txn.authorizedBy}</td>
+                      <td className="p-3.5 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setEditingTransaction(txn)}
+                            className="p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/60 rounded border border-blue-200 dark:border-blue-800 transition"
+                            title="Edit Voucher Entry"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteTransaction(txn)}
+                            className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/60 rounded border border-red-200 dark:border-red-800 transition"
+                            title="Delete Voucher Entry"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
@@ -2857,6 +3022,335 @@ export const StoreInventoryManager: React.FC = () => {
                 Understood &amp; Correct Stock Entry
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* ------------------------------------------------------------------------- */}
+      {/* 11. EDIT MATERIAL ITEM MASTER MODAL */}
+      {/* ------------------------------------------------------------------------- */}
+      {editingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-3xl w-full max-w-lg shadow-2xl p-6 space-y-4 animate-scaleUp max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400">
+                  <Edit2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 dark:text-white">
+                    Edit Store Material Details
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-mono">
+                    Code: {editingItem.itemCode || editingItem.priceListCode} • ID: {editingItem.id}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingItem(null)}
+                className="p-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditItem} className="space-y-3.5 text-xs font-semibold">
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 mb-1">
+                  Item Description / Name:
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editingItem.name}
+                  onChange={e => setEditingItem(prev => prev ? { ...prev, name: e.target.value } : null)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 mb-1">
+                    Category:
+                  </label>
+                  <select
+                    value={editingItem.category}
+                    onChange={e => setEditingItem(prev => prev ? { ...prev, category: e.target.value } : null)}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                  >
+                    {allCategories.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 mb-1">
+                    Unit of Measurement:
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editingItem.unit || 'Nos'}
+                    onChange={e => setEditingItem(prev => prev ? { ...prev, unit: e.target.value } : null)}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-mono"
+                    placeholder="Nos, Sets, Kgs, Mtr"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 mb-1">
+                    Current Available Stock:
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    required
+                    value={editingItem.currentStock}
+                    onChange={e => setEditingItem(prev => prev ? { ...prev, currentStock: Number(e.target.value) } : null)}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-mono font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 mb-1">
+                    Min Buffer Threshold:
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    required
+                    value={editingItem.minBufferThreshold}
+                    onChange={e => setEditingItem(prev => prev ? { ...prev, minBufferThreshold: Number(e.target.value) } : null)}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 mb-1">
+                    Unit Rate (₹):
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={editingItem.unitRate || 0}
+                    onChange={e => setEditingItem(prev => prev ? { ...prev, unitRate: Number(e.target.value) } : null)}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 mb-1">
+                    Storage Location / Bay:
+                  </label>
+                  <input
+                    type="text"
+                    value={editingItem.location || ''}
+                    onChange={e => setEditingItem(prev => prev ? { ...prev, location: e.target.value } : null)}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white"
+                    placeholder="IMSD SMUN Central Store"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 mb-1">
+                  Supplier / Source Details:
+                </label>
+                <input
+                  type="text"
+                  value={editingItem.supplier || ''}
+                  onChange={e => setEditingItem(prev => prev ? { ...prev, supplier: e.target.value } : null)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white"
+                  placeholder="e.g. Approved Vendor / Plant"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 mb-1">
+                  Specification &amp; Remarks:
+                </label>
+                <textarea
+                  rows={2}
+                  value={editingItem.specification || ''}
+                  onChange={e => setEditingItem(prev => prev ? { ...prev, specification: e.target.value } : null)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs"
+                  placeholder="Standard RDSO / DFCCIL specification"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingItem(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white rounded-xl font-black text-xs shadow-lg transition active:scale-95 flex items-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Save Material Changes</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------------------- */}
+      {/* 12. EDIT TRANSACTION / VOUCHER ENTRY MODAL */}
+      {/* ------------------------------------------------------------------------- */}
+      {editingTransaction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-3xl w-full max-w-md shadow-2xl p-6 space-y-4 animate-scaleUp">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400">
+                  <Edit2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 dark:text-white">
+                    Edit Voucher Transaction Entry
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-mono">
+                    Material: {editingTransaction.itemName}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingTransaction(null)}
+                className="p-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditTransaction} className="space-y-3 text-xs font-semibold">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 mb-1">
+                    Date (YYYY-MM-DD):
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={editingTransaction.date?.split('T')[0] || ''}
+                    onChange={e => setEditingTransaction(prev => prev ? { ...prev, date: e.target.value } : null)}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 mb-1">
+                    Voucher / Ref No:
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editingTransaction.referenceNo || ''}
+                    onChange={e => setEditingTransaction(prev => prev ? { ...prev, referenceNo: e.target.value } : null)}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 mb-1">
+                    Transaction Type:
+                  </label>
+                  <select
+                    value={editingTransaction.type}
+                    onChange={e => setEditingTransaction(prev => prev ? { ...prev, type: e.target.value as any } : null)}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-bold"
+                  >
+                    <option value="INWARD">📥 Inward (Receipt)</option>
+                    <option value="OUTWARD">📤 Outward (Issue)</option>
+                    <option value="TRANSFER">🔄 Transfer</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 mb-1">
+                    Quantity ({editingTransaction.unit || 'Nos'}):
+                  </label>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="any"
+                    required
+                    value={editingTransaction.quantity}
+                    onChange={e => setEditingTransaction(prev => prev ? { ...prev, quantity: Number(e.target.value) } : null)}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-mono font-bold"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 mb-1">
+                  Received From / Issued To:
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editingTransaction.issuedToOrReceivedFrom || ''}
+                  onChange={e => setEditingTransaction(prev => prev ? { ...prev, issuedToOrReceivedFrom: e.target.value } : null)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white"
+                  placeholder="e.g. CIODW Ami Bartan Bhandar / P.Way Gang"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 mb-1">
+                  Purpose / Section:
+                </label>
+                <input
+                  type="text"
+                  value={editingTransaction.purposeOrSection || ''}
+                  onChange={e => setEditingTransaction(prev => prev ? { ...prev, purposeOrSection: e.target.value } : null)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white"
+                  placeholder="IMSD/USED or Railway Maintenance"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 mb-1">
+                  Authorized By:
+                </label>
+                <input
+                  type="text"
+                  value={editingTransaction.authorizedBy || 'Store Keeper / APM'}
+                  onChange={e => setEditingTransaction(prev => prev ? { ...prev, authorizedBy: e.target.value } : null)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-mono"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingTransaction(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-black text-xs shadow-lg transition active:scale-95 flex items-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Update Voucher</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
